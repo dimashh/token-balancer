@@ -1,0 +1,5 @@
+rootProject.name = 'cordacademy-template'
+include 'contract'
+include 'workflow'
+include 'webserver'
+include 'tasks'

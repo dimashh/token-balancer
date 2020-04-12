@@ -1,0 +1,75 @@
+buildscript {
+    ext {
+        kotlin_group = 'org.jetbrains.kotlin'
+        kotlin_version = '1.2.71'
+
+        corda_artifactory_url = 'https://ci-artifactory.corda.r3cev.com/artifactory'
+        corda_group = 'net.corda'
+        corda_release_version = '4.3'
+
+        corda_gradle_plugin_group = 'net.corda.plugins'
+        corda_gradle_plugin_version = '5.0.4'
+
+        junit_group = 'org.junit.jupiter'
+        junit_version = '5.3.1'
+
+        springboot_group = "org.springframework.boot"
+        springboot_release_version = "2.1.6.RELEASE"
+
+        cordapp_platform_version = 5
+        cordapp_signing_enabled = true
+        cordapp_contract = 'TODO_REPLACE_WITH_CONTRACT_NAME'
+        cordapp_workflow = 'TODO_REPLACE_WITH_WORKFLOW_NAME'
+        cordapp_vendor = 'TODO_REPLACE_WITH_VENDOR_NAME'
+        cordapp_license = 'TODO_REPLACE_WITH_LICENSE'
+        cordapp_version = 1
+    }
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "$corda_artifactory_url/corda-releases" }
+    }
+
+    dependencies {
+        classpath "$kotlin_group:kotlin-gradle-plugin:$kotlin_version"
+        classpath "$corda_gradle_plugin_group:cordapp:$corda_gradle_plugin_version"
+        classpath "$corda_gradle_plugin_group:cordformation:$corda_gradle_plugin_version"
+        classpath "$corda_gradle_plugin_group:quasar-utils:$corda_gradle_plugin_version"
+    }
+}
+
+subprojects {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+        maven { url "https://jitpack.io" }
+        maven { url "$corda_artifactory_url/corda-releases" }
+        maven { url "$corda_artifactory_url/corda-lib" }
+        maven { url "https://repo.gradle.org/gradle/libs-releases" }
+    }
+
+    apply plugin: 'kotlin'
+    apply plugin: 'net.corda.plugins.cordapp'
+
+    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile) {
+        kotlinOptions {
+            languageVersion = "1.2"
+            apiVersion = "1.2"
+            jvmTarget = "1.8"
+            javaParameters = true
+        }
+    }
+
+    jar {
+        exclude '**/log4j2*.xml'
+    }
+
+    test {
+        jvmArgs = ["-ea", "-javaagent:../lib/quasar.jar"]
+        maxHeapSize = "1024m"
+        useJUnitPlatform()
+    }
+}
