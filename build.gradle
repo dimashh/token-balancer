@@ -23,6 +23,9 @@ buildscript {
         cordapp_vendor = 'TODO_REPLACE_WITH_VENDOR_NAME'
         cordapp_license = 'TODO_REPLACE_WITH_LICENSE'
         cordapp_version = 1
+
+        tokens_release_version = '1.1'
+        tokens_release_group = 'com.r3.corda.lib.tokens'
     }
 
     repositories {
@@ -30,6 +33,8 @@ buildscript {
         mavenCentral()
         jcenter()
         maven { url "$corda_artifactory_url/corda-releases" }
+        maven { url 'https://ci-artifactory.corda.r3cev.com/artifactory/corda-lib' }
+        maven { url 'https://ci-artifactory.corda.r3cev.com/artifactory/corda-lib-dev' }
     }
 
     dependencies {
