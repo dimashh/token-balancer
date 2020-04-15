@@ -68,6 +68,12 @@ subprojects {
         }
     }
 
+    dependencies {
+        //Joda money dependency
+        compile group: 'org.joda', name: 'joda-money', version: '1.0.1'
+    }
+
+
     jar {
         exclude '**/log4j2*.xml'
     }
