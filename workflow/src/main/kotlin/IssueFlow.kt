@@ -3,7 +3,7 @@ package workflow
 import co.paralleluniverse.fibers.Suspendable
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken
 import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
-import com.r3.corda.lib.tokens.contracts.types.TokenType
+import com.r3.corda.lib.tokens.money.FiatCurrency
 import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
 import net.corda.core.contracts.Amount
 import net.corda.core.flows.*
@@ -20,13 +20,12 @@ class Initiator(private val money: Money, private val receiver: Party, private v
     override val progressTracker = ProgressTracker()
 
     companion object Tracker {
-        object INITIALISING_TOKEN : ProgressTracker.Step("Initialising TokenStates.")
+        object INITIALISING_TOKEN : ProgressTracker.Step("Initialising Tokens.")
         object ASSIGNING_OWNER : ProgressTracker.Step("Assigning token owner.")
         object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
         object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
         object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
         object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-
     }
 
     @Suspendable
@@ -36,10 +35,13 @@ class Initiator(private val money: Money, private val receiver: Party, private v
 
         progressTracker.currentStep = INITIALISING_TOKEN
 
-        val tokenType = IssuedTokenType(issuer, TokenType(currencyCode, 2))
+        val tokenType = IssuedTokenType(issuer, FiatCurrency.getInstance(currencyCode))
         val createdToken = FungibleToken(Amount(currencyAmount, tokenType), receiver)
 
+        progressTracker.currentStep = INITIALISING_TOKEN
         val issuedTokens = IssueTokens(listOf(createdToken))
+
+        issuedTokens.tokensToIssue
     }
 }
 
