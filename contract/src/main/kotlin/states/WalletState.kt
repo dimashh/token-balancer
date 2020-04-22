@@ -7,17 +7,17 @@ import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
 
 data class WalletState(
-    val fiatTokens: FungibleToken,
+    val fiatToken: FungibleToken,
     val owner: Party,
-    override val linearId: UniqueIdentifier,
-    override val participants: List<AbstractParty>
+    override val participants: List<AbstractParty>,
+    override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
 
     fun getBalance(): Long {
-        return fiatTokens.amount.quantity
+        return fiatToken.amount.quantity
     }
 
     fun getCurrencyCode(): String {
-        return fiatTokens.issuedTokenType.tokenIdentifier
+        return fiatToken.issuedTokenType.tokenIdentifier
     }
 }

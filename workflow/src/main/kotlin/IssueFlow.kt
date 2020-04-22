@@ -1,15 +1,19 @@
 package workflow
 
 import co.paralleluniverse.fibers.Suspendable
+import com.r3.corda.lib.tokens.contracts.commands.IssueTokenCommand
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken
-import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
+import com.r3.corda.lib.tokens.contracts.utilities.heldBy
+import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
+import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.FiatCurrency
-import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
-import net.corda.core.contracts.Amount
+import contracts.WalletContract
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
+import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import org.joda.money.Money
+import states.WalletState
 
 // *********
 // * Flow to issue virtual representation of real currency
@@ -20,8 +24,8 @@ class Initiator(private val money: Money, private val receiver: Party, private v
     override val progressTracker = ProgressTracker()
 
     companion object Tracker {
-        object INITIALISING_TOKEN : ProgressTracker.Step("Initialising Tokens.")
-        object ASSIGNING_OWNER : ProgressTracker.Step("Assigning token owner.")
+        object ISSUE_TOKENS : ProgressTracker.Step("Creating tokens.")
+        object ASSIGNING_WALLET : ProgressTracker.Step("Moving tokens to owner's wallet.")
         object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
         object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
         object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
@@ -30,18 +34,24 @@ class Initiator(private val money: Money, private val receiver: Party, private v
 
     @Suspendable
     override fun call() {
-        val currencyCode = money.currencyUnit.code
-        val currencyAmount = money.amount.toLong()
 
-        progressTracker.currentStep = INITIALISING_TOKEN
+        progressTracker.currentStep = ISSUE_TOKENS
+        val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
+        val issuedTokenType = currencyCode issuedBy issuer
+        val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy issuer
 
-        val tokenType = IssuedTokenType(issuer, FiatCurrency.getInstance(currencyCode))
-        val createdToken = FungibleToken(Amount(currencyAmount, tokenType), receiver)
+        progressTracker.currentStep = ASSIGNING_WALLET
+        val walletState = WalletState(fiatToken, receiver, listOf(receiver, issuer))
 
-        progressTracker.currentStep = INITIALISING_TOKEN
-        val issuedTokens = IssueTokens(listOf(createdToken))
+        progressTracker.currentStep = INITIALISING_TX
+        val notary = serviceHub.networkMapCache.notaryIdentities.first()
+        val txBuilder = TransactionBuilder(notary)
 
-        issuedTokens.tokensToIssue
+        txBuilder.addOutputState(fiatToken)
+        txBuilder.addCommand(IssueTokenCommand(issuedTokenType), listOf(issuer.owningKey))
+
+        txBuilder.addOutputState(walletState)
+        txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
     }
 }
 
