@@ -17,72 +17,87 @@ import net.corda.core.utilities.ProgressTracker
 import org.joda.money.Money
 import states.WalletState
 
-// *********
-// * Flow to issue virtual representation of real currency
-// *********
-@InitiatingFlow
-@StartableByRPC
-class Initiator(private val money: Money, private val receiver: Party, private val issuer: Party) : FlowLogic<SignedTransaction>() {
-    override val progressTracker = ProgressTracker()
+/**
+ *  Flow to issue virtual representation of real currency
+ */
+object IssueFlow {
 
-    companion object Tracker {
-        object ISSUE_TOKENS : ProgressTracker.Step("Creating tokens.")
-        object ASSIGNING_WALLET : ProgressTracker.Step("Moving tokens to owner's wallet.")
-        object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
-        object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
-        object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
-        object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-        object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+    @InitiatingFlow
+    @StartableByRPC
+    class Initiator(private val money: Money, private val receiver: Party, private val issuer: Party) : FlowLogic<SignedTransaction>() {
+
+        companion object {
+            object ISSUE_TOKENS : ProgressTracker.Step("Creating tokens.")
+            object ASSIGNING_WALLET : ProgressTracker.Step("Moving tokens to owner's wallet.")
+            object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
+            object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
+            object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
+            object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
+            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+        }
+
+        fun tracker() = ProgressTracker(
+            ISSUE_TOKENS,
+            ASSIGNING_WALLET,
+            INITIALISING_TX,
+            VERIFYING_TRANSACTION,
+            SIGNING_TRANSACTION,
+            GATHERING_SIGS,
+            FINALISING_TRANSACTION
+        )
+
+        override val progressTracker: ProgressTracker = tracker()
+
+        @Suspendable
+        override fun call(): SignedTransaction {
+
+            progressTracker.currentStep = ISSUE_TOKENS
+            val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
+            val issuedTokenType = currencyCode issuedBy issuer
+            val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy issuer
+
+            progressTracker.currentStep = ASSIGNING_WALLET
+            val walletState = WalletState(fiatToken, receiver, listOf(receiver, issuer))
+
+            progressTracker.currentStep = INITIALISING_TX
+            val notary = serviceHub.networkMapCache.notaryIdentities.first()
+            val txBuilder = TransactionBuilder(notary)
+
+            txBuilder.addOutputState(fiatToken)
+            txBuilder.addCommand(IssueTokenCommand(issuedTokenType), listOf(issuer.owningKey))
+
+            txBuilder.addOutputState(walletState)
+            txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
+
+            progressTracker.currentStep = SIGNING_TRANSACTION
+            val signedTx = serviceHub.signInitialTransaction(txBuilder)
+
+            progressTracker.currentStep = VERIFYING_TRANSACTION
+            txBuilder.verify(serviceHub)
+
+            progressTracker.currentStep = GATHERING_SIGS
+            val otherPartySession = initiateFlow(issuer)
+            val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx, listOf(otherPartySession)))
+
+            progressTracker.currentStep = FINALISING_TRANSACTION
+            return subFlow(FinalityFlow(fullySignedTransaction, listOf(otherPartySession)))
+        }
     }
 
-    @Suspendable
-    override fun call(): SignedTransaction {
-
-        progressTracker.currentStep = ISSUE_TOKENS
-        val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
-        val issuedTokenType = currencyCode issuedBy issuer
-        val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy issuer
-
-        progressTracker.currentStep = ASSIGNING_WALLET
-        val walletState = WalletState(fiatToken, receiver, listOf(receiver, issuer))
-
-        progressTracker.currentStep = INITIALISING_TX
-        val notary = serviceHub.networkMapCache.notaryIdentities.first()
-        val txBuilder = TransactionBuilder(notary)
-
-        txBuilder.addOutputState(fiatToken)
-        txBuilder.addCommand(IssueTokenCommand(issuedTokenType), listOf(issuer.owningKey))
-
-        txBuilder.addOutputState(walletState)
-        txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
-
-        progressTracker.currentStep = SIGNING_TRANSACTION
-        val signedTx = serviceHub.signInitialTransaction(txBuilder)
-
-        progressTracker.currentStep = VERIFYING_TRANSACTION
-        txBuilder.verify(serviceHub)
-
-        progressTracker.currentStep = GATHERING_SIGS
-        val otherPartySession = initiateFlow(issuer)
-        val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx, listOf(otherPartySession)))
-
-        progressTracker.currentStep = FINALISING_TRANSACTION
-        return subFlow(FinalityFlow(fullySignedTransaction, listOf(otherPartySession)))
+    @InitiatedBy(Initiator::class)
+    class Responder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
+        @Suspendable
+        override fun call(): SignedTransaction {
+            val signedTransactionFlow = object : SignTransactionFlow(counterpartySession) {
+                override fun checkTransaction(stx: SignedTransaction) {
+                    requireThat {
+                        val issueTokens = stx.tx.outRefsOfType<FungibleToken>()
+                        "Token issuer must be the signer" using (issueTokens.all { it.state.data.issuer == counterpartySession.counterparty })
+                    }
+                }
+            }
+            return subFlow(signedTransactionFlow)
+        }
     }
-}
 
-@InitiatedBy(Initiator::class)
-class Responder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
-    @Suspendable
-    override fun call(): SignedTransaction {
-       val signedTransactionFlow = object : SignTransactionFlow(counterpartySession) {
-           override fun checkTransaction(stx: SignedTransaction) {
-               requireThat {
-                   val issueTokens = stx.tx.outRefsOfType<FungibleToken>()
-                   "Token issuer must be the signer" using (issueTokens.all { it.state.data.issuer == counterpartySession.counterparty })
-               }
-           }
-       }
-        return subFlow(signedTransactionFlow)
-    }
 }

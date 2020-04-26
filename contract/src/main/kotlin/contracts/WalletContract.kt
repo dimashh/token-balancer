@@ -14,7 +14,7 @@ class WalletContract : Contract {
         val commands = tx.commands
 
         requireThat {
-            "Owner of the wallet must be the owner of the tokens" using (outputs.all { it.owner != it.fiatTokens.holder })
+            "Owner of the wallet must be the owner of the tokens" using (outputs.all { it.owner != it.fiatToken.holder })
 
             "Wallet balance cannot be negative" using (outputs.all { it.getBalance() < 0 })
         }
