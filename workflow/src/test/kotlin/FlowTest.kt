@@ -18,7 +18,7 @@ abstract class FlowTest : AutoCloseable {
     protected companion object {
 
         val cordapps = listOf<String>(
-           "workflow"
+            "contract"
         )
 
         val IDENTITY_A = TestIdentity(CordaX500Name("PartyA", "London", "GB"))

@@ -10,11 +10,11 @@ abstract class ContractTest : AutoCloseable {
     protected companion object {
 
         val cordapps = listOf<String>(
-            TODO("Add cordapps...")
+            "contract"
         )
 
         val contracts = listOf<ContractClassName>(
-            TODO("Add contract IDs...")
+            "WalletContract"
         )
 
         val IDENTITY_A = TestIdentity(CordaX500Name("PartyA", "London", "GB"))

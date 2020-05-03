@@ -1,3 +1,6 @@
+package tests
+
+import FlowTest
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.junit.jupiter.api.Test

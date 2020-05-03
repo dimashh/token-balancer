@@ -18,10 +18,10 @@ buildscript {
 
         cordapp_platform_version = 5
         cordapp_signing_enabled = true
-        cordapp_contract = 'TODO_REPLACE_WITH_CONTRACT_NAME'
-        cordapp_workflow = 'TODO_REPLACE_WITH_WORKFLOW_NAME'
-        cordapp_vendor = 'TODO_REPLACE_WITH_VENDOR_NAME'
-        cordapp_license = 'TODO_REPLACE_WITH_LICENSE'
+        cordapp_contract = 'Token Balancer Contract'
+        cordapp_workflow = 'Token Balancer Flow'
+        cordapp_vendor = 'Corda Open Source'
+        cordapp_license = 'Apache License, Version 2.0'
         cordapp_version = 1
 
         tokens_release_version = '1.1'
