@@ -19,7 +19,7 @@ abstract class FlowTest : AutoCloseable {
 
         val cordapps = listOf<String>(
             "workflow",
-            "contract",
+            "contracts",
             "com.r3.corda.lib.tokens.workflows",
             "com.r3.corda.lib.tokens.contracts",
             "com.r3.corda.lib.tokens.money"
