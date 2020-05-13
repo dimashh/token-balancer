@@ -1,6 +1,7 @@
 package tests
 
 import ContractTest
+import com.r3.corda.lib.tokens.contracts.commands.IssueTokenCommand
 import contracts.WalletContract
 import states.WalletState
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken
@@ -21,7 +22,8 @@ class WalletContractTest : ContractTest() {
                 val issuedTokenType = GBP issuedBy IDENTITY_A.party
                 val fiatToken: FungibleToken = 10 of issuedTokenType heldBy IDENTITY_B.party
 
-                output(WalletContract.ID, WalletState(fiatToken, IDENTITY_B.party, listOf(IDENTITY_A.party, IDENTITY_B.party)))
+                command(IDENTITY_A.publicKey, IssueTokenCommand(issuedTokenType))
+                output(WalletContract::class.java.name, WalletState(fiatToken, IDENTITY_B.party, listOf(IDENTITY_A.party, IDENTITY_B.party)))
                 fails()
             }
         }

@@ -8,11 +8,6 @@ import states.WalletState
 
 class WalletContract : Contract {
 
-    companion object {
-        @JvmStatic
-        val ID = "WalletContract"
-    }
-
     override fun verify(tx: LedgerTransaction) {
         val inputs = tx.inputsOfType<WalletState>()
         val outputs = tx.outputsOfType<WalletState>()

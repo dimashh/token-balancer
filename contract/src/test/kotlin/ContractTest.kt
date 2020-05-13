@@ -1,3 +1,4 @@
+import contracts.WalletContract
 import net.corda.core.contracts.ContractClassName
 import net.corda.core.identity.CordaX500Name
 import net.corda.testing.core.TestIdentity
@@ -10,11 +11,11 @@ abstract class ContractTest : AutoCloseable {
     protected companion object {
 
         val cordapps = listOf<String>(
-            "contract"
+            "contracts"
         )
 
         val contracts = listOf<ContractClassName>(
-            "WalletContract"
+            WalletContract::class.java.name
         )
 
         val IDENTITY_A = TestIdentity(CordaX500Name("PartyA", "London", "GB"))
