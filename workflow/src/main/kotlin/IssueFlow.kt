@@ -87,14 +87,16 @@ object IssueFlow {
     class Responder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {
-            val signedTransactionFlow = object : SignTransactionFlow(counterpartySession) {
+            val stx = subFlow(object : SignTransactionFlow(counterpartySession) {
                 override fun checkTransaction(stx: SignedTransaction) {
                     requireThat {
                         val issueTokens = stx.tx.outputsOfType<WalletState>()
+                        val responderParty = serviceHub.myInfo.legalIdentities.single()
+                        "Token issuer must be the signer" using (issueTokens.all { it.fiatToken.issuer == responderParty })
                     }
                 }
-            }
-            return subFlow(signedTransactionFlow)
+            })
+            return subFlow(ReceiveFinalityFlow(counterpartySession, stx.id))
         }
     }
 
