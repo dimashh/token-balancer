@@ -17,7 +17,7 @@ class IssueFlowTest : FlowTest() {
     fun `flow to issue tokens`() {
         val money = Money.of(CurrencyUnit.GBP, 10.toBigDecimal())
 
-        val flow = IssueFlow.Initiator(money, receiver = partyB,issuer = partyA)
+        val flow = IssueFlow.Initiator(money, receiver = partyB, issuer = partyA)
 
         assertDoesNotThrow {
             runNetwork { nodeB.startFlow(flow) }

@@ -2,6 +2,7 @@ package contracts
 
 import net.corda.core.contracts.CommandData
 import net.corda.core.contracts.Contract
+import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 import states.WalletState
@@ -9,15 +10,32 @@ import states.WalletState
 class WalletContract : Contract {
 
     override fun verify(tx: LedgerTransaction) {
+        val command = tx.commands.requireSingleCommand<Commands>()
+        when (command.value) {
+            is Commands.Deposit -> verifyDeposit(tx)
+            is Commands.Transfer -> verifyTransfer(tx)
+            is Commands.Withdraw -> verifyWithdraw(tx)
+            else -> throw IllegalArgumentException("Command not found.")
+        }
+    }
+
+    private fun verifyDeposit(tx: LedgerTransaction) = requireThat {
+        val walletState = tx.outputsOfType<WalletState>().single()
+
+        "Owner of the wallet ${walletState.owner} must be the owner of the tokens ${walletState.fiatToken.holder}" using (walletState.owner == walletState.fiatToken.holder)
+
+        "Wallet balance cannot be negative" using (walletState.getBalance() > 0)
+    }
+
+    private fun verifyTransfer(tx: LedgerTransaction) = requireThat {
         val inputs = tx.inputsOfType<WalletState>()
         val outputs = tx.outputsOfType<WalletState>()
-        val commands = tx.commands
+    }
 
-        requireThat {
-            "Owner of the wallet must be the owner of the tokens" using (outputs.all { it.owner != it.fiatToken.holder })
+    private fun verifyWithdraw(tx: LedgerTransaction) = requireThat {
+        val inputs = tx.inputsOfType<WalletState>()
+        val outputs = tx.outputsOfType<WalletState>()
 
-            "Wallet balance cannot be negative" using (outputs.all { it.getBalance() < 0 })
-        }
     }
 
     interface Commands : CommandData {

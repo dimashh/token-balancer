@@ -1,14 +1,12 @@
 package workflow
 
 import co.paralleluniverse.fibers.Suspendable
-import com.r3.corda.lib.tokens.contracts.commands.IssueTokenCommand
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken
 import com.r3.corda.lib.tokens.contracts.utilities.heldBy
 import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
 import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.FiatCurrency
 import com.r3.corda.lib.tokens.workflows.flows.issue.IssueTokensFlow
-import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
 import contracts.WalletContract
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -22,6 +20,7 @@ import states.WalletState
 /**
  *  Flow to issue virtual representation of real currency
  */
+
 object IssueFlow {
 
     @InitiatingFlow
@@ -57,7 +56,6 @@ object IssueFlow {
             val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
             val issuedTokenType = currencyCode issuedBy issuer
             val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy receiver
-
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
@@ -70,11 +68,11 @@ object IssueFlow {
             txBuilder.addOutputState(walletState)
             txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
 
-            progressTracker.currentStep = SIGNING_TRANSACTION
-            val signedTx = serviceHub.signInitialTransaction(txBuilder)
-
             progressTracker.currentStep = VERIFYING_TRANSACTION
             txBuilder.verify(serviceHub)
+
+            progressTracker.currentStep = SIGNING_TRANSACTION
+            val signedTx = serviceHub.signInitialTransaction(txBuilder)
 
             progressTracker.currentStep = GATHERING_SIGS
             val otherPartySession = initiateFlow(issuer)
@@ -92,8 +90,7 @@ object IssueFlow {
             val signedTransactionFlow = object : SignTransactionFlow(counterpartySession) {
                 override fun checkTransaction(stx: SignedTransaction) {
                     requireThat {
-                        val issueTokens = stx.tx.outRefsOfType<FungibleToken>()
-                        "Token issuer must be the signer" using (issueTokens.all { it.state.data.issuer == counterpartySession.counterparty })
+                        val issueTokens = stx.tx.outputsOfType<WalletState>()
                     }
                 }
             }
