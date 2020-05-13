@@ -7,6 +7,8 @@ import com.r3.corda.lib.tokens.contracts.utilities.heldBy
 import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
 import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.FiatCurrency
+import com.r3.corda.lib.tokens.workflows.flows.issue.IssueTokensFlow
+import com.r3.corda.lib.tokens.workflows.flows.rpc.IssueTokens
 import contracts.WalletContract
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -54,7 +56,9 @@ object IssueFlow {
             progressTracker.currentStep = ISSUE_TOKENS
             val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
             val issuedTokenType = currencyCode issuedBy issuer
-            val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy issuer
+            val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy receiver
+
+            IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
             val walletState = WalletState(fiatToken, receiver, listOf(receiver, issuer))
@@ -62,9 +66,6 @@ object IssueFlow {
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             val txBuilder = TransactionBuilder(notary)
-
-            txBuilder.addOutputState(fiatToken)
-            txBuilder.addCommand(IssueTokenCommand(issuedTokenType), listOf(issuer.owningKey))
 
             txBuilder.addOutputState(walletState)
             txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
