@@ -14,12 +14,17 @@ data class WalletState(
     val walletId: UUID,
     val fiatToken: FungibleToken,
     val owner: Party,
+    val transactions: List<TransactionState>,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
 
     fun getBalance(): Long {
         return fiatToken.amount.quantity
+    }
+
+    fun getIssuer(): Party {
+        return fiatToken.issuer
     }
 
     fun getCurrencyCode(): String {

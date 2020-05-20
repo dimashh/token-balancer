@@ -1,7 +1,8 @@
 package states
 
-import com.r3.corda.lib.tokens.contracts.states.FungibleToken
+import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
 import contracts.TradingAccountContract
+import net.corda.core.contracts.Amount
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
@@ -14,11 +15,11 @@ enum class AccountAction { ISSUE, WITHDRAW }
 @BelongsToContract(TradingAccountContract::class)
 data class TradingAccountState(
     val accountId: UUID,
-    val balance: FungibleToken,
+    val balance: Amount<IssuedTokenType>,
     val owner: Party,
-    val orders: List<TransactionState>,
+    val transactions: List<TransactionState>,
     override val participants: List<AbstractParty>,
-    override val linearId: UniqueIdentifier
+    override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
 
 }

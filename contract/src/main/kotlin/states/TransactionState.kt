@@ -15,7 +15,7 @@ data class TransactionState(
     val total: Long,
     val date: ZonedDateTime,
     override val participants: List<AbstractParty>,
-    override val linearId: UniqueIdentifier
+    override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
 
 }
