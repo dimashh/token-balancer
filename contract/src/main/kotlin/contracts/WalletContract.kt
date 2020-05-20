@@ -12,7 +12,7 @@ class WalletContract : Contract {
     override fun verify(tx: LedgerTransaction) {
         val command = tx.commands.requireSingleCommand<Commands>()
         when (command.value) {
-            is Commands.Deposit -> verifyDeposit(tx)
+            is Commands.Issue -> verifyDeposit(tx)
             is Commands.Transfer -> verifyTransfer(tx)
             is Commands.Withdraw -> verifyWithdraw(tx)
             else -> throw IllegalArgumentException("Command not found.")
@@ -39,7 +39,7 @@ class WalletContract : Contract {
     }
 
     interface Commands : CommandData {
-        class Deposit : Commands
+        class Issue : Commands
         class Transfer : Commands
         class Withdraw : Commands
     }

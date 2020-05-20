@@ -7,9 +7,11 @@ import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import java.util.*
 
 @BelongsToContract(WalletContract::class)
 data class WalletState(
+    val walletId: UUID,
     val fiatToken: FungibleToken,
     val owner: Party,
     override val participants: List<AbstractParty>,

@@ -11,6 +11,7 @@ import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.GBP
 import net.corda.testing.node.ledger
 import org.junit.jupiter.api.Test
+import java.util.*
 
 class WalletContractTest : ContractTest() {
 
@@ -23,7 +24,7 @@ class WalletContractTest : ContractTest() {
                 val fiatToken: FungibleToken = 10 of issuedTokenType heldBy IDENTITY_B.party
 
                 command(IDENTITY_A.publicKey, IssueTokenCommand(issuedTokenType))
-                output(WalletContract::class.java.name, WalletState(fiatToken, IDENTITY_B.party, listOf(IDENTITY_A.party, IDENTITY_B.party)))
+                output(WalletContract::class.java.name, WalletState(UUID.randomUUID(), fiatToken, IDENTITY_B.party, listOf(IDENTITY_A.party, IDENTITY_B.party)))
                 fails()
             }
         }

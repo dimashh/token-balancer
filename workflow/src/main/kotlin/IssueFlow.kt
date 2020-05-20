@@ -16,6 +16,7 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import org.joda.money.Money
 import states.WalletState
+import java.util.*
 
 /**
  *  Flow to issue virtual representation of real currency
@@ -59,14 +60,14 @@ object IssueFlow {
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
-            val walletState = WalletState(fiatToken, receiver, listOf(receiver, issuer))
+            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, listOf(receiver, issuer))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             val txBuilder = TransactionBuilder(notary)
 
             txBuilder.addOutputState(walletState)
-            txBuilder.addCommand(WalletContract.Commands.Deposit(), listOf(receiver.owningKey, issuer.owningKey))
+            txBuilder.addCommand(WalletContract.Commands.Issue(), listOf(receiver.owningKey, issuer.owningKey))
 
             progressTracker.currentStep = VERIFYING_TRANSACTION
             txBuilder.verify(serviceHub)
@@ -84,10 +85,10 @@ object IssueFlow {
     }
 
     @InitiatedBy(Initiator::class)
-    class Responder(val counterpartySession: FlowSession) : FlowLogic<SignedTransaction>() {
+    class Responder(val counterPartySession: FlowSession) : FlowLogic<SignedTransaction>() {
         @Suspendable
         override fun call(): SignedTransaction {
-            val stx = subFlow(object : SignTransactionFlow(counterpartySession) {
+            val stx = subFlow(object : SignTransactionFlow(counterPartySession) {
                 override fun checkTransaction(stx: SignedTransaction) {
                     requireThat {
                         val issueTokens = stx.tx.outputsOfType<WalletState>()
@@ -96,7 +97,7 @@ object IssueFlow {
                     }
                 }
             })
-            return subFlow(ReceiveFinalityFlow(counterpartySession, stx.id))
+            return subFlow(ReceiveFinalityFlow(counterPartySession, stx.id))
         }
     }
 
