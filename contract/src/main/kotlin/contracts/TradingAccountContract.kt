@@ -12,5 +12,6 @@ class TradingAccountContract: Contract {
 
     interface Commands : CommandData {
         class Create : Commands
+        //class Withdraw : Commands
     }
 }

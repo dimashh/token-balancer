@@ -9,7 +9,7 @@ import workflow.IssueFlow
 
 /**
  *  Add -ea -javaagent:../lib/quasar.jar to VM options
- */
+ **/
 
 class IssueFlowTest : FlowTest() {
 
