@@ -24,7 +24,7 @@ class WalletContractTest : ContractTest() {
                 val fiatToken: FungibleToken = 10 of issuedTokenType heldBy IDENTITY_B.party
 
                 command(IDENTITY_A.publicKey, IssueTokenCommand(issuedTokenType))
-                output(WalletContract::class.java.name, WalletState(UUID.randomUUID(), fiatToken, IDENTITY_B.party, listOf(IDENTITY_A.party, IDENTITY_B.party)))
+                output(WalletContract::class.java.name, WalletState(UUID.randomUUID(), fiatToken, IDENTITY_B.party, listOf() ,listOf(IDENTITY_A.party, IDENTITY_B.party)))
                 fails()
             }
         }

@@ -60,7 +60,7 @@ object IssueFlow {
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
-            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, listOf(receiver, issuer))
+            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, listOf(), listOf(receiver, issuer))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
