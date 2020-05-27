@@ -97,7 +97,7 @@ object TransferFlow {
             val otherPartySession = initiateFlow(issuer)
             val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx, listOf(otherPartySession)))
 
-            progressTracker.currentStep = IssueFlow.Initiator.Companion.FINALISING_TRANSACTION
+            progressTracker.currentStep = FINALISING_TRANSACTION
             return subFlow(FinalityFlow(fullySignedTransaction, listOf(otherPartySession)))
         }
     }
