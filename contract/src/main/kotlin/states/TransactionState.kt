@@ -5,8 +5,12 @@ import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
+import net.corda.core.serialization.CordaSerializable
 import java.time.ZonedDateTime
 import java.util.*
+
+@CordaSerializable
+enum class TransactionStatus { COMPLETED }
 
 @BelongsToContract(TransactionContract::class)
 data class TransactionState(
@@ -14,7 +18,7 @@ data class TransactionState(
     val exchangeRate: Long,
     val total: Long,
     val date: ZonedDateTime,
-    //TODO add status to track lifecycle
+    val status: TransactionStatus,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {

@@ -16,6 +16,7 @@ import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import org.joda.money.Money
 import states.WalletState
+import states.WalletStatus
 import java.util.*
 
 /**
@@ -26,7 +27,8 @@ object IssueFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(private val money: Money, private val receiver: Party, private val issuer: Party) : FlowLogic<SignedTransaction>() {
+    class Initiator(private val money: Money, private val receiver: Party, private val issuer: Party) :
+        FlowLogic<SignedTransaction>() {
 
         companion object {
             object ISSUE_TOKENS : ProgressTracker.Step("Creating tokens.")
@@ -35,7 +37,8 @@ object IssueFlow {
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
             object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+            object FINALISING_TRANSACTION :
+                ProgressTracker.Step("Obtaining notary signature and recording transaction.")
         }
 
         fun tracker() = ProgressTracker(
@@ -60,7 +63,14 @@ object IssueFlow {
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
-            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, listOf(), listOf(receiver, issuer))
+            val walletState = WalletState(
+                UUID.randomUUID(),
+                fiatToken,
+                receiver,
+                listOf(),
+                WalletStatus.OPEN,
+                listOf(receiver, issuer)
+            )
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()

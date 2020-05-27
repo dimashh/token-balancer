@@ -12,10 +12,7 @@ import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import states.AccountAction
-import states.TradingAccountState
-import states.TransactionState
-import states.WalletState
+import states.*
 import java.time.ZonedDateTime
 import java.util.*
 
@@ -58,17 +55,32 @@ object TransferFlow {
 
             progressTracker.currentStep = GET_WALLET
             val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>().states
-                .singleOrNull { it.state.data.walletId == walletId } ?: throw NotFoundException("Wallet with $walletId not found.")
+                .singleOrNull { it.state.data.walletId == walletId }
+                ?: throw NotFoundException("Wallet with $walletId not found.")
             val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = ASSIGNING_ACCOUNT
             // TODO trading account must keep track of account transfers as well as sell orders
-            val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount , walletState.owner, emptyList(), listOf(walletState.owner))
+            val tradingAccountState = TradingAccountState(
+                UUID.randomUUID(),
+                tokens.amount,
+                walletState.owner,
+                emptyList(),
+                AccountStatus.ACTIVE,
+                listOf(walletState.owner)
+            )
 
             // TODO exchange rate should be supplied by an oracle
             val exchangeRate = 0.75.toLong()
             // TODO must keep track of currencies being exchanged
-            val transactionState = TransactionState(UUID.randomUUID(), exchangeRate, walletState.getBalance(), ZonedDateTime.now(), listOf(walletState.owner))
+            val transactionState = TransactionState(
+                UUID.randomUUID(),
+                exchangeRate,
+                walletState.getBalance(),
+                ZonedDateTime.now(),
+                TransactionStatus.COMPLETED,
+                listOf(walletState.owner)
+            )
             val updatedWalletState = walletStateAndRef.state.data.copy(transactions = listOf(transactionState))
 
             progressTracker.currentStep = INITIALISING_TX
@@ -79,7 +91,10 @@ object TransferFlow {
 
             txBuilder.addInputState(walletStateAndRef)
             txBuilder.addOutputState(updatedWalletState)
-            txBuilder.addCommand(WalletContract.Commands.Update(), listOf(walletState.owner.owningKey, issuer.owningKey))
+            txBuilder.addCommand(
+                WalletContract.Commands.Update(),
+                listOf(walletState.owner.owningKey, issuer.owningKey)
+            )
 
             txBuilder.addOutputState(tradingAccountState)
             txBuilder.addCommand(TradingAccountContract.Commands.Create(), listOf(walletState.owner.owningKey))

@@ -7,7 +7,11 @@ import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
 import net.corda.core.identity.AbstractParty
 import net.corda.core.identity.Party
+import net.corda.core.serialization.CordaSerializable
 import java.util.*
+
+@CordaSerializable
+enum class WalletStatus { OPEN, CLOSED }
 
 @BelongsToContract(WalletContract::class)
 data class WalletState(
@@ -15,7 +19,7 @@ data class WalletState(
     val fiatToken: FungibleToken,
     val owner: Party,
     val transactions: List<TransactionState>,
-    //TODO add status to track lifecycle
+    val status: WalletStatus,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
