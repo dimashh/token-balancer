@@ -60,18 +60,18 @@ object TransferFlow {
             val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = ASSIGNING_ACCOUNT
-            // TODO trading account must keep track of account transfers as well as sell orders
-            val tradingAccountState = TradingAccountState(
-                UUID.randomUUID(),
-                tokens.amount,
-                walletState.owner,
-                emptyList(),
-                AccountStatus.ACTIVE,
-                listOf(walletState.owner)
-            )
 
             // TODO exchange rate should be supplied by an oracle
             val exchangeRate = 0.75.toLong()
+
+            val orderMeta = mapOf(
+                "rate" to "$exchangeRate",
+                "amount" to "${walletState.getBalance()}",
+                "baseCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier,
+                "exchangeCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier
+            )
+            val order = Order(UUID.randomUUID(), AssetType.Currency, orderMeta)
+
             // TODO must keep track of currencies being exchanged
             val transactionState = TransactionState(
                 UUID.randomUUID(),
@@ -79,6 +79,16 @@ object TransferFlow {
                 walletState.getBalance(),
                 ZonedDateTime.now(),
                 TransactionStatus.COMPLETED,
+                listOf(walletState.owner)
+            )
+
+            val tradingAccountState = TradingAccountState(
+                UUID.randomUUID(),
+                tokens.amount,
+                walletState.owner,
+                listOf(order),
+                listOf(transactionState),
+                AccountStatus.ACTIVE,
                 listOf(walletState.owner)
             )
             val updatedWalletState = walletStateAndRef.state.data.copy(transactions = listOf(transactionState))

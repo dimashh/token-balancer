@@ -21,10 +21,11 @@ data class TradingAccountState(
     val accountId: UUID,
     val balance: Amount<IssuedTokenType>,
     val owner: Party,
-    val transactions: List<TransactionState>,
+    val orders: List<Order>,
+    val transfers: List<TransactionState>,
     val status: AccountStatus,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
-): LinearState {
-
+) : LinearState {
+    
 }
