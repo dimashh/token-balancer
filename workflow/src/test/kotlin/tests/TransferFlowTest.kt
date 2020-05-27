@@ -15,18 +15,18 @@ import workflow.TransferFlow
 
 class TransferFlowTest : FlowTest() {
 
+    private val testMoney = Money.of(CurrencyUnit.GBP, 10.toBigDecimal())
+
+    private val afterIssueFlow by lazy {
+        runNetwork {
+            nodeB.startFlow(IssueFlow.Initiator(testMoney, receiver = partyB, issuer = partyA))
+        }
+    }
+
     @Test
     fun `flow to transfer tokens from waller to trading account`() {
-        val money = Money.of(CurrencyUnit.GBP, 10.toBigDecimal())
-
-        runNetwork {
-            val walletState = nodeB.startFlow(IssueFlow.Initiator(money, receiver = partyB, issuer = partyA)).get().tx.outputsOfType<WalletState>().single()
-            val tokens = walletState.fiatToken
-
-            val tx = nodeB.startFlow(TransferFlow.Initiator(tokens, walletState.walletId, null, AccountAction.ISSUE))
-            tx
-        }
-
+        val walletState = afterIssueFlow.get().tx.outputsOfType<WalletState>().single()
+        runNetwork { nodeB.startFlow(TransferFlow.Initiator(walletState.fiatToken, walletState.walletId, null, AccountAction.ISSUE)) }
     }
 
 }
