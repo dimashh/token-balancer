@@ -14,6 +14,7 @@ data class TransactionState(
     val exchangeRate: Long,
     val total: Long,
     val date: ZonedDateTime,
+    //TODO add status to track lifecycle
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {

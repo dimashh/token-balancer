@@ -15,6 +15,7 @@ data class WalletState(
     val fiatToken: FungibleToken,
     val owner: Party,
     val transactions: List<TransactionState>,
+    //TODO add status to track lifecycle
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {

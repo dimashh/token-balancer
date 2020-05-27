@@ -62,12 +62,14 @@ object TransferFlow {
             val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = ASSIGNING_ACCOUNT
+            // TODO trading account must keep track of account transfers as well as sell orders
             val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount , walletState.owner, emptyList(), listOf(walletState.owner))
 
             // TODO exchange rate should be supplied by an oracle
             val exchangeRate = 0.75.toLong()
+            // TODO must keep track of currencies being exchanged
             val transactionState = TransactionState(UUID.randomUUID(), exchangeRate, walletState.getBalance(), ZonedDateTime.now(), listOf(walletState.owner))
-            val updatedWalletStateAndRef = walletStateAndRef.copy(state = walletStateAndRef.state.copy(data = walletState.copy(transactions = listOf(transactionState))))
+            val updatedWalletState = walletStateAndRef.state.data.copy(transactions = listOf(transactionState))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -75,7 +77,8 @@ object TransferFlow {
             val issuer = walletState.getIssuer()
             val txBuilder = TransactionBuilder(notary)
 
-            txBuilder.addInputState(updatedWalletStateAndRef)
+            txBuilder.addInputState(walletStateAndRef)
+            txBuilder.addOutputState(updatedWalletState)
             txBuilder.addCommand(WalletContract.Commands.Update(), listOf(walletState.owner.owningKey, issuer.owningKey))
 
             txBuilder.addOutputState(tradingAccountState)

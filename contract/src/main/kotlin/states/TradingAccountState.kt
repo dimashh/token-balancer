@@ -18,6 +18,7 @@ data class TradingAccountState(
     val balance: Amount<IssuedTokenType>,
     val owner: Party,
     val transactions: List<TransactionState>,
+    //TODO add status to track lifecycle
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
 ): LinearState {
