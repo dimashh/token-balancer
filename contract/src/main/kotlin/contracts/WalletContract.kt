@@ -24,26 +24,26 @@ class WalletContract : Contract {
         val walletState = tx.outputsOfType<WalletState>().single()
 
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
+        "There is exactly one output transaction state" using (tx.outputsOfType<TransactionState>().size == 1)
         "Owner of the wallet ${walletState.owner} must be the owner of the tokens ${walletState.fiatToken.holder}" using (walletState.owner == walletState.fiatToken.holder)
-        "Wallet balance cannot be negative" using (walletState.getBalance() > 0)
+        "Wallet balance cannot be negative" using (walletState.balance > 0)
     }
 
     private fun verifyUpdate(tx: LedgerTransaction) = requireThat {
         val input = tx.inputsOfType<WalletState>().single()
         val output = tx.outputsOfType<WalletState>().single()
-        val transactionState = tx.outRefsOfType<TransactionState>().single().state.data
+        val transactionState = tx.outRefsOfType<TransactionState>()
 
         "There is exactly one input wallet state" using (tx.inputsOfType<WalletState>().size == 1)
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
-        "Updated wallet state includes the new transaction" using (output.transactions.contains(transactionState))
+        "Updated wallet state must include new transaction(s)" using (output.transactions.isNotEmpty())
         "Wallet update can only add one transaction at a time" using (output.transactions.size - (input.transactions.size) == 1)
     }
 
     private fun verifyWithdraw(tx: LedgerTransaction) = requireThat {
         val inputs = tx.inputsOfType<WalletState>()
         val outputs = tx.outputsOfType<WalletState>()
-
     }
 
     interface Commands : CommandData {

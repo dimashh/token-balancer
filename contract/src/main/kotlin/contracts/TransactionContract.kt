@@ -5,7 +5,8 @@ import net.corda.core.contracts.Contract
 import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
-import states.TradingAccountState
+import states.TransactionState
+import kotlin.math.abs
 
 class TransactionContract : Contract {
 
@@ -19,9 +20,14 @@ class TransactionContract : Contract {
 
     private fun verifyCreate(tx: LedgerTransaction) {
         requireThat {
-            val transactionState = tx.outputsOfType<TradingAccountState>().single()
+            val transactionStates = tx.outputsOfType<TransactionState>()
 
-            "There is exactly one output wallet state" using (tx.outputsOfType<TradingAccountState>().size == 1)
+            transactionStates.map {
+                val total = abs(it.amountIn + it.amountOut)
+                "Transaction total must be ${it.total}, but was $total" using (total == it.total)
+            }
+
+            "There must be at least one output transaction state" using (tx.outputsOfType<TransactionState>().isNotEmpty())
         }
     }
 

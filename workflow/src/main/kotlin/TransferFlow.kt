@@ -54,8 +54,7 @@ object TransferFlow {
         override fun call(): SignedTransaction {
 
             progressTracker.currentStep = GET_WALLET
-            val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>().states
-                .singleOrNull { it.state.data.walletId == walletId }
+            val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>().states.singleOrNull { it.state.data.walletId == walletId }
                 ?: throw NotFoundException("Wallet with $walletId not found.")
             val walletState = walletStateAndRef.state.data
 
@@ -66,32 +65,16 @@ object TransferFlow {
 
             val orderMeta = mapOf(
                 "rate" to "$exchangeRate",
-                "amount" to "${walletState.getBalance()}",
+                "amount" to "${walletState.balance}",
                 "baseCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier,
                 "exchangeCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier
             )
+            val outComingTransactionState = TransactionState(UUID.randomUUID(), 0, walletState.balance, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
+            val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outComingTransactionState.total ,transactions = listOf(outComingTransactionState))
+
             val order = Order(UUID.randomUUID(), AssetType.Currency, orderMeta)
-
-            // TODO must keep track of currencies being exchanged
-            val transactionState = TransactionState(
-                UUID.randomUUID(),
-                exchangeRate,
-                walletState.getBalance(),
-                ZonedDateTime.now(),
-                TransactionStatus.COMPLETED,
-                listOf(walletState.owner)
-            )
-
-            val tradingAccountState = TradingAccountState(
-                UUID.randomUUID(),
-                tokens.amount,
-                walletState.owner,
-                listOf(order),
-                listOf(transactionState),
-                AccountStatus.ACTIVE,
-                listOf(walletState.owner)
-            )
-            val updatedWalletState = walletStateAndRef.state.data.copy(transactions = listOf(transactionState))
+            val inComingTransactionState = TransactionState(UUID.randomUUID(), walletState.balance, 0, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
+            val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount, walletState.owner, listOf(order), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -109,7 +92,10 @@ object TransferFlow {
             txBuilder.addOutputState(tradingAccountState)
             txBuilder.addCommand(TradingAccountContract.Commands.Create(), listOf(walletState.owner.owningKey))
 
-            txBuilder.addOutputState(transactionState)
+            txBuilder.addOutputState(outComingTransactionState)
+            txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(walletState.owner.owningKey))
+
+            txBuilder.addOutputState(inComingTransactionState)
             txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(walletState.owner.owningKey))
 
             progressTracker.currentStep = VERIFYING_TRANSACTION

@@ -7,6 +7,7 @@ import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
 import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.FiatCurrency
 import com.r3.corda.lib.tokens.workflows.flows.issue.IssueTokensFlow
+import contracts.TransactionContract
 import contracts.WalletContract
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -15,9 +16,13 @@ import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
 import org.joda.money.Money
+import states.TransactionState
+import states.TransactionStatus
 import states.WalletState
 import states.WalletStatus
+import java.time.ZonedDateTime
 import java.util.*
+import kotlin.math.abs
 
 /**
  *  Flow to issue virtual representation of real currency
@@ -57,24 +62,22 @@ object IssueFlow {
         override fun call(): SignedTransaction {
 
             progressTracker.currentStep = ISSUE_TOKENS
+            val total = money.amount.toLong()
             val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
             val issuedTokenType = currencyCode issuedBy issuer
-            val fiatToken: FungibleToken = money.amount.toLong() of issuedTokenType heldBy receiver
+            val fiatToken: FungibleToken = total of issuedTokenType heldBy receiver
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
-            val walletState = WalletState(
-                UUID.randomUUID(),
-                fiatToken,
-                receiver,
-                listOf(),
-                WalletStatus.OPEN,
-                listOf(receiver, issuer)
-            )
+            val transactionState = TransactionState(UUID.randomUUID(), total, 0, total, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(receiver, issuer))
+            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, abs(total) ,listOf(transactionState), WalletStatus.OPEN, listOf(receiver, issuer))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             val txBuilder = TransactionBuilder(notary)
+
+            txBuilder.addOutputState(transactionState)
+            txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(receiver.owningKey, issuer.owningKey))
 
             txBuilder.addOutputState(walletState)
             txBuilder.addCommand(WalletContract.Commands.Issue(), listOf(receiver.owningKey, issuer.owningKey))

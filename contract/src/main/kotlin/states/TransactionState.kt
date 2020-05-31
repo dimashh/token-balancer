@@ -15,7 +15,8 @@ enum class TransactionStatus { COMPLETED }
 @BelongsToContract(TransactionContract::class)
 data class TransactionState(
     val transactionId: UUID,
-    val exchangeRate: Long,
+    val amountIn: Long,
+    val amountOut: Long,
     val total: Long,
     val date: ZonedDateTime,
     val status: TransactionStatus,
