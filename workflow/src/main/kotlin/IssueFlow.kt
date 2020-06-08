@@ -49,8 +49,7 @@ object IssueFlow {
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
             object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-            object FINALISING_TRANSACTION :
-                ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
         }
 
         fun tracker() = ProgressTracker(

@@ -20,8 +20,11 @@ enum class AccountStatus { ACTIVE, INACTIVE }
 @BelongsToContract(TradingAccountContract::class)
 data class TradingAccountState(
     val accountId: UUID,
+    // TODO we want to be able to hold multiple currencies in the account
     val balance: Amount<IssuedTokenType>,
     val owner: Party,
+    // TODO create a factory class to work out the calculations based on orders
+    // i.e. buy orders decrease available balance
     val orders: List<Order>,
     val transfers: List<TransactionState>,
     val status: AccountStatus,

@@ -1,12 +1,17 @@
 package workflow
 
 import co.paralleluniverse.fibers.Suspendable
+import contracts.OrderContract
+import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
+import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
+import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import states.Order
+import states.*
+import java.time.ZonedDateTime
 import java.util.*
 
 // TODO move out to an interface
@@ -25,18 +30,20 @@ object ExecuteOrderFlow {
         private val tradingAccountId: UUID,
         private val order: Order,
         private val tradingParty: Party
-        ) : FlowLogic<SignedTransaction>() {
+    ) : FlowLogic<SignedTransaction>() {
 
         companion object {
+            object GET_ACCOUNT : ProgressTracker.Step("Retrieving user trading account.")
+            object EXECUTE_ORDER : ProgressTracker.Step("Executing order at the exchange.")
             object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
             object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-            object FINALISING_TRANSACTION :
-                ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
         }
 
         fun tracker() = ProgressTracker(
+            GET_ACCOUNT,
             INITIALISING_TX,
             VERIFYING_TRANSACTION,
             SIGNING_TRANSACTION,
@@ -48,6 +55,44 @@ object ExecuteOrderFlow {
 
         @Suspendable
         override fun call(): SignedTransaction {
+
+            progressTracker.currentStep = GET_ACCOUNT
+            val tradingAccountStateAndRef = serviceHub.vaultService.queryBy<TradingAccountState>()
+                .states.singleOrNull { it.state.data.accountId == tradingAccountId } ?: throw NotFoundException("Trading account with $tradingAccountId not found.")
+
+            val tradingAccountState = tradingAccountStateAndRef.state.data
+
+            progressTracker.currentStep = EXECUTE_ORDER
+
+            // TODO this should be a subflow to an exchange (or our own node for now) where the order gets verified and processed
+            val attempt = OrderAttempt(AttemptStatus.SUCCEEDED, "Order successfully verified.", ZonedDateTime.now())
+            val completedOrder = order.copy(attempt = attempt, status = OrderStatus.COMPLETED)
+            // TODO calculations must be done and checked before contract verification
+            val updatedTradingAccountState = tradingAccountState.copy(orders = listOf(completedOrder))
+
+            progressTracker.currentStep = INITIALISING_TX
+            val notary = serviceHub.networkMapCache.notaryIdentities.first()
+            val txBuilder = TransactionBuilder(notary)
+
+            txBuilder.addInputState(tradingAccountStateAndRef)
+            txBuilder.addOutputState(updatedTradingAccountState)
+            txBuilder.addCommand(
+                OrderContract.Commands.Buy(),
+               tradingAccountState.participants.map { it.owningKey }
+            )
+
+            progressTracker.currentStep = VERIFYING_TRANSACTION
+            txBuilder.verify(serviceHub)
+
+            progressTracker.currentStep = SIGNING_TRANSACTION
+            val signedTx = serviceHub.signInitialTransaction(txBuilder)
+
+            // TODO the transaction must be signed by the party that executes the subflow and an oracle
+//            progressTracker.currentStep = GATHERING_SIGS
+//            val otherPartySession = initiateFlow()
+
+            progressTracker.currentStep = FINALISING_TRANSACTION
+            return signedTx
 
         }
     }

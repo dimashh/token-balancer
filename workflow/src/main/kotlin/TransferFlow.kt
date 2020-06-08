@@ -43,8 +43,7 @@ object TransferFlow {
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
             object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-            object FINALISING_TRANSACTION :
-                ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
         }
 
         fun tracker() = ProgressTracker(
@@ -69,21 +68,11 @@ object TransferFlow {
 
             progressTracker.currentStep = ASSIGNING_ACCOUNT
 
-            // TODO exchange rate should be supplied by an oracle
-            val exchangeRate = 0.75.toLong()
-
-            val orderMeta = mapOf(
-                "rate" to "$exchangeRate",
-                "amount" to "${walletState.balance}",
-                "baseCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier,
-                "exchangeCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier
-            )
             val outComingTransactionState = TransactionState(UUID.randomUUID(), 0, walletState.balance, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
             val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outComingTransactionState.total ,transactions = listOf(outComingTransactionState))
 
-            val order = Order(UUID.randomUUID(), AssetType.Currency, orderMeta)
             val inComingTransactionState = TransactionState(UUID.randomUUID(), walletState.balance, 0, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
-            val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount, walletState.owner, listOf(order), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
+            val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
