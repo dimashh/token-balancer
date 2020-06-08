@@ -24,16 +24,23 @@ import java.time.ZonedDateTime
 import java.util.*
 import kotlin.math.abs
 
+// TODO move out to an interface
 /**
  *  Flow to issue virtual representation of real currency
+ *  @param money The amount/type of money being moved
+ *  @param receiver The receiving party
+ *  @param issuer The issuing party. Must be a well established organisation such the England Bank
  */
 
 object IssueFlow {
 
     @InitiatingFlow
     @StartableByRPC
-    class Initiator(private val money: Money, private val receiver: Party, private val issuer: Party) :
-        FlowLogic<SignedTransaction>() {
+    class Initiator(
+        private val money: Money,
+        private val receiver: Party,
+        private val issuer: Party
+    ) : FlowLogic<SignedTransaction>() {
 
         companion object {
             object ISSUE_TOKENS : ProgressTracker.Step("Creating tokens.")

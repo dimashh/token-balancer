@@ -16,6 +16,15 @@ import states.*
 import java.time.ZonedDateTime
 import java.util.*
 
+// TODO move out to an interface
+/**
+ *  Flow to transfer funds to trading account
+ *  @param tokens The tokens being moved
+ *  @param walledId The target wallet's ID
+ *  @param tradingAccountId The target trading account's ID (for transferring between accounts)
+ *  @param action The type of operation being performed
+ */
+
 object TransferFlow {
 
     @InitiatingFlow

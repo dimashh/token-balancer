@@ -11,7 +11,8 @@ import net.corda.core.identity.Party
 import net.corda.core.serialization.CordaSerializable
 import java.util.*
 
-enum class AccountAction { ISSUE, WITHDRAW }
+@CordaSerializable
+enum class AccountAction { ISSUE, WITHDRAW, TRANSFER }
 
 @CordaSerializable
 enum class AccountStatus { ACTIVE, INACTIVE }
