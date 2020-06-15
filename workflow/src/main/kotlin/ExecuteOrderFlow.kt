@@ -2,6 +2,7 @@ package workflow
 
 import co.paralleluniverse.fibers.Suspendable
 import contracts.OrderContract
+import contracts.TradingAccountContract
 import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -44,6 +45,7 @@ object ExecuteOrderFlow {
 
         fun tracker() = ProgressTracker(
             GET_ACCOUNT,
+            EXECUTE_ORDER,
             INITIALISING_TX,
             VERIFYING_TRANSACTION,
             SIGNING_TRANSACTION,
@@ -76,10 +78,7 @@ object ExecuteOrderFlow {
 
             txBuilder.addInputState(tradingAccountStateAndRef)
             txBuilder.addOutputState(updatedTradingAccountState)
-            txBuilder.addCommand(
-                OrderContract.Commands.Buy(),
-               tradingAccountState.participants.map { it.owningKey }
-            )
+            txBuilder.addCommand(TradingAccountContract.Commands.Update(), tradingAccountState.participants.map { it.owningKey })
 
             progressTracker.currentStep = VERIFYING_TRANSACTION
             txBuilder.verify(serviceHub)

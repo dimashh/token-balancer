@@ -82,17 +82,12 @@ object TransferFlow {
 
             txBuilder.addInputState(walletStateAndRef)
             txBuilder.addOutputState(updatedWalletState)
-            txBuilder.addCommand(
-                WalletContract.Commands.Update(),
-                listOf(walletState.owner.owningKey, issuer.owningKey)
-            )
+            txBuilder.addCommand(WalletContract.Commands.Update(), listOf(walletState.owner.owningKey, issuer.owningKey))
 
             txBuilder.addOutputState(tradingAccountState)
             txBuilder.addCommand(TradingAccountContract.Commands.Create(), listOf(walletState.owner.owningKey))
 
             txBuilder.addOutputState(outComingTransactionState)
-            txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(walletState.owner.owningKey))
-
             txBuilder.addOutputState(inComingTransactionState)
             txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(walletState.owner.owningKey))
 
