@@ -1,7 +1,6 @@
 package workflow
 
 import co.paralleluniverse.fibers.Suspendable
-import contracts.OrderContract
 import contracts.TradingAccountContract
 import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
