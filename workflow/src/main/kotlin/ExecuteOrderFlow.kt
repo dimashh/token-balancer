@@ -68,7 +68,7 @@ object ExecuteOrderFlow {
             val attempt = OrderAttempt(AttemptStatus.SUCCEEDED, "Order successfully verified.", ZonedDateTime.now())
             val completedOrder = order.copy(attempt = attempt, status = OrderStatus.COMPLETED)
             // TODO calculations must be done and checked before contract verification
-            val updatedTradingAccountState = tradingAccountState.copy(orders = listOf(completedOrder))
+            val updatedTradingAccountState = tradingAccountState.copy(orders = tradingAccountState.orders + completedOrder)
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()

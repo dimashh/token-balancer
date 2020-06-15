@@ -69,7 +69,7 @@ object TransferFlow {
             progressTracker.currentStep = ASSIGNING_ACCOUNT
 
             val outComingTransactionState = TransactionState(UUID.randomUUID(), 0, walletState.balance, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
-            val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outComingTransactionState.total ,transactions = listOf(outComingTransactionState))
+            val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outComingTransactionState.total ,transactions = walletState.transactions + outComingTransactionState)
 
             val inComingTransactionState = TransactionState(UUID.randomUUID(), walletState.balance, 0, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
             val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))

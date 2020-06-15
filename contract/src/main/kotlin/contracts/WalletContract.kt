@@ -32,13 +32,13 @@ class WalletContract : Contract {
     private fun verifyUpdate(tx: LedgerTransaction) = requireThat {
         val input = tx.inputsOfType<WalletState>().single()
         val output = tx.outputsOfType<WalletState>().single()
-        val transactionState = tx.outRefsOfType<TransactionState>()
+        val latestTransaction = output.transactions - input.transactions
 
         "There is exactly one input wallet state" using (tx.inputsOfType<WalletState>().size == 1)
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
         "Updated wallet state must include new transaction(s)" using (output.transactions.isNotEmpty())
-        "Wallet update can only add one transaction at a time" using (output.transactions.size - (input.transactions.size) == 1)
+        "Wallet update can only add one transaction at a time" using (latestTransaction.size == 1)
     }
 
     private fun verifyWithdraw(tx: LedgerTransaction) = requireThat {
