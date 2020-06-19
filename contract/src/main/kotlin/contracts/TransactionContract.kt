@@ -20,7 +20,12 @@ class TransactionContract : Contract {
 
     private fun verifyCreate(tx: LedgerTransaction) {
         requireThat {
+            "There is exactly one output transaction state" using (tx.outputsOfType<TransactionState>().size == 1)
+            "There should be no input transaction state" using (tx.inputsOfType<TransactionState>().isEmpty())
+
             val transactionStates = tx.outputsOfType<TransactionState>()
+
+
 
             transactionStates.map {
                 val total = abs(it.amountIn + it.amountOut)
