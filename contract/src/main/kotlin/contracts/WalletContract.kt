@@ -5,7 +5,6 @@ import net.corda.core.contracts.Contract
 import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
-import states.TransactionState
 import states.WalletState
 
 class WalletContract : Contract {
@@ -21,11 +20,12 @@ class WalletContract : Contract {
     }
 
     private fun verifyIssue(tx: LedgerTransaction) = requireThat {
-        val walletState = tx.outputsOfType<WalletState>().single()
-
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
-        "There is exactly one output transaction state" using (tx.outputsOfType<TransactionState>().size == 1)
-        "Owner of the wallet ${walletState.owner} must be the owner of the tokens ${walletState.fiatToken.holder}" using (walletState.owner == walletState.fiatToken.holder)
+        "There should be no input wallet state" using (tx.inputsOfType<WalletState>().isEmpty())
+
+        val walletState = tx.outputsOfType<WalletState>().single()
+        "Owner of the wallet [${walletState.owner}] must be the owner of the tokens [${walletState.fiatToken.holder}]" using
+                (walletState.owner == walletState.fiatToken.holder)
         "Wallet balance cannot be negative" using (walletState.balance > 0)
     }
 
