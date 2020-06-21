@@ -20,10 +20,8 @@ class TradingAccountContract : Contract {
 
     private fun verifyCreate(tx: LedgerTransaction) {
         requireThat {
-            val tradingAccountState = tx.outputsOfType<TradingAccountState>().single()
-
-            "There is exactly one output wallet state" using (tx.outputsOfType<TradingAccountState>().size == 1)
-            "Account balance cannot be negative" using (tradingAccountState.balance.quantity > 0)
+            "There should be no input trading account state" using (tx.inputsOfType<TradingAccountState>().isEmpty())
+            "There is exactly one output trading account state" using (tx.outputsOfType<TradingAccountState>().size == 1)
         }
     }
 

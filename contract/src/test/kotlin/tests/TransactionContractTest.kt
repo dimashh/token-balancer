@@ -4,6 +4,7 @@ import ContractTest
 import contracts.TransactionContract
 import net.corda.testing.node.ledger
 import contracts.TransactionContract.Commands.Create
+import contracts.WalletContract.Commands.Issue
 import org.junit.jupiter.api.Test
 import states.TransactionState
 import states.TransactionStatus
@@ -20,7 +21,7 @@ class TransactionContractTest : ContractTest() {
             transaction {
 
                 output(TransactionContract::class.java.name, transactionState)
-                command(IDENTITY_A.publicKey, Create())
+                command(IDENTITY_A.publicKey, Issue())
                 failsWith("Required contracts.TransactionContract.Commands command")
             }
         }
