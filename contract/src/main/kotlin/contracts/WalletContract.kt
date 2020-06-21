@@ -20,8 +20,8 @@ class WalletContract : Contract {
     }
 
     private fun verifyIssue(tx: LedgerTransaction) = requireThat {
-        "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
         "There should be no input wallet state" using (tx.inputsOfType<WalletState>().isEmpty())
+        "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
         val walletState = tx.outputsOfType<WalletState>().single()
         "Owner of the wallet [${walletState.owner}] must be the owner of the tokens [${walletState.fiatToken.holder}]" using

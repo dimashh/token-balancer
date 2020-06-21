@@ -47,7 +47,7 @@ class WalletContractTest : ContractTest() {
             transaction {
                 input(WalletContract::class.java.name, walletState)
                 command(keysOf(IDENTITY_A, IDENTITY_B), Issue())
-                failsWith("There is exactly one output wallet state")
+                failsWith("There should be no input wallet state")
             }
         }
     }
