@@ -27,16 +27,16 @@ class TradingAccountContract : Contract {
 
     private fun verifyUpdate(tx: LedgerTransaction) {
         requireThat {
+            "There is exactly one input trading account state" using (tx.inputsOfType<TradingAccountState>().size == 1)
+            "There is exactly one output trading account state" using (tx.outputsOfType<TradingAccountState>().size == 1)
+
             val inputTradingAccount = tx.inputsOfType<TradingAccountState>().single()
             val outputTradingAccount = tx.outputsOfType<TradingAccountState>().single()
             val latestOrder = outputTradingAccount.orders - inputTradingAccount.orders
             val order = latestOrder.single()
 
             "Order must have a status of completed but was ${order.status}" using (order.status == OrderStatus.COMPLETED)
-            "Buy order must have an action of buy but was ${order.action}" using (order.action == OrderAction.BUY)
-
-            "There is exactly one input wallet state" using (tx.inputsOfType<TradingAccountState>().size == 1)
-            "There is exactly one output wallet state" using (tx.outputsOfType<TradingAccountState>().size == 1)
+            "Buy order must have BUY action but was ${order.action}" using (order.action == OrderAction.BUY)
 
             "Trading Account update can only add one order at a time" using (latestOrder.size == 1)
         }
