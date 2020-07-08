@@ -6,12 +6,12 @@ import com.r3.corda.lib.tokens.money.GBP
 import contracts.TradingAccountContract
 import net.corda.testing.node.ledger
 import contracts.TradingAccountContract.Commands.Create
+import contracts.TradingAccountContract.Commands.Update
 import contracts.WalletContract.Commands.Issue
 import net.corda.core.contracts.Amount
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
-import states.AccountStatus
-import states.TradingAccountState
+import states.*
 import java.util.*
 
 class TradingAccountContractTest : ContractTest() {
@@ -25,6 +25,7 @@ class TradingAccountContractTest : ContractTest() {
         listOf(),
         AccountStatus.ACTIVE,
         listOf(IDENTITY_A.party))
+    private val order = Order(UUID.randomUUID(), OrderAction.EXCHANGE, AssetType.CURRENCY, null, OrderStatus.WORKING, mapOf())
 
     @Test
     fun `Create - Requires a command`() {
@@ -69,6 +70,45 @@ class TradingAccountContractTest : ContractTest() {
                     command(IDENTITY_A.publicKey, Create())
                     verifies()
                 }
+            }
+        }
+    }
+
+    @Test
+    fun `Update - Requires one input state & one output state`() {
+        services.ledger {
+            transaction {
+                output(TradingAccountContract::class.java.name, tradingAccountState)
+                command(IDENTITY_A.publicKey, Update())
+                failsWith("There is exactly one input trading account state")
+            }
+
+            transaction {
+                input(TradingAccountContract::class.java.name, tradingAccountState)
+                output(TradingAccountContract::class.java.name, tradingAccountState)
+                output(TradingAccountContract::class.java.name, tradingAccountState)
+                command(IDENTITY_A.publicKey, Update())
+                failsWith("There is exactly one output trading account state")
+            }
+        }
+    }
+
+    @Test
+    fun `Update - order must be valid`() {
+        services.ledger {
+            transaction {
+                input(TradingAccountContract::class.java.name, tradingAccountState)
+                output(TradingAccountContract::class.java.name, tradingAccountState.copy(orders = listOf(order)))
+                command(IDENTITY_A.publicKey, Update())
+                failsWith("Order must have a status of completed but was WORKING")
+            }
+
+            transaction {
+                val orders = listOf(order.copy(status = OrderStatus.COMPLETED), order)
+                input(TradingAccountContract::class.java.name, tradingAccountState)
+                output(TradingAccountContract::class.java.name, tradingAccountState.copy(orders = orders))
+                command(IDENTITY_A.publicKey, Update())
+                failsWith("Trading Account update can only add one order at a time")
             }
         }
     }

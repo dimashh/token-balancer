@@ -33,12 +33,9 @@ class TradingAccountContract : Contract {
             val inputTradingAccount = tx.inputsOfType<TradingAccountState>().single()
             val outputTradingAccount = tx.outputsOfType<TradingAccountState>().single()
             val latestOrder = outputTradingAccount.orders - inputTradingAccount.orders
-            val order = latestOrder.single()
-
-            "Order must have a status of completed but was ${order.status}" using (order.status == OrderStatus.COMPLETED)
-            "Buy order must have BUY action but was ${order.action}" using (order.action == OrderAction.BUY)
-
             "Trading Account update can only add one order at a time" using (latestOrder.size == 1)
+            "Order must have a status of completed but was ${latestOrder.single().status}" using
+                    (latestOrder.single().status == OrderStatus.COMPLETED)
         }
     }
 
