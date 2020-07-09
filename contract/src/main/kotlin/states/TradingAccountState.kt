@@ -1,8 +1,7 @@
 package states
 
-import com.r3.corda.lib.tokens.contracts.types.IssuedTokenType
+import com.r3.corda.lib.tokens.contracts.states.FungibleToken
 import contracts.TradingAccountContract
-import net.corda.core.contracts.Amount
 import net.corda.core.contracts.BelongsToContract
 import net.corda.core.contracts.LinearState
 import net.corda.core.contracts.UniqueIdentifier
@@ -20,8 +19,9 @@ enum class AccountStatus { ACTIVE, INACTIVE }
 @BelongsToContract(TradingAccountContract::class)
 data class TradingAccountState(
     val accountId: UUID,
-    // TODO we want to be able to hold multiple currencies in the account
-    val balance: Amount<IssuedTokenType>,
+    val baseCurrency: Currency,
+    val tokens: Map<String, FungibleToken>,
+    val balance: Long,
     val owner: Party,
     // TODO create a factory class to work out the calculations based on orders
     // i.e. buy orders decrease available balance

@@ -16,20 +16,13 @@ enum class WalletStatus { OPEN, CLOSED }
 @BelongsToContract(WalletContract::class)
 data class WalletState(
     val walletId: UUID,
-    val fiatToken: FungibleToken,
+    val baseCurrency: Currency,
+    // Upon balance changes the fungible tokens must be updated
+    val tokens: Map<String, FungibleToken>,
     val owner: Party,
     val balance: Long,
     val transactions: List<TransactionState>,
     val status: WalletStatus,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()
-): LinearState {
-    
-    fun getIssuer(): Party {
-        return fiatToken.issuer
-    }
-
-    fun getCurrencyCode(): String {
-        return fiatToken.issuedTokenType.tokenIdentifier
-    }
-}
+): LinearState

@@ -68,16 +68,17 @@ object TransferFlow {
 
             progressTracker.currentStep = ASSIGNING_ACCOUNT
 
-            val outComingTransactionState = TransactionState(UUID.randomUUID(), 0, walletState.balance, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
-            val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outComingTransactionState.total ,transactions = walletState.transactions + outComingTransactionState)
+            val outGoingTransactionState = TransactionState(UUID.randomUUID(), 0, walletState.balance, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
+            val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outGoingTransactionState.total ,transactions = walletState.transactions + outGoingTransactionState)
 
             val inComingTransactionState = TransactionState(UUID.randomUUID(), walletState.balance, 0, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
-            val tradingAccountState = TradingAccountState(UUID.randomUUID(), tokens.amount, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
+            val tradingAccountState = TradingAccountState(UUID.randomUUID(), walletState.baseCurrency, mapOf(tokens.tokenType.tokenIdentifier to tokens), inComingTransactionState.total, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             // TODO counterParty should be identified dynamically
-            val issuer = walletState.getIssuer()
+            // TODO must better manage current token being used - how do we know which token and issuer belong to who?
+            val issuer = tokens.issuer
             val txBuilder = TransactionBuilder(notary)
 
             txBuilder.addInputState(walletStateAndRef)
@@ -87,7 +88,7 @@ object TransferFlow {
             txBuilder.addOutputState(tradingAccountState)
             txBuilder.addCommand(TradingAccountContract.Commands.Create(), listOf(walletState.owner.owningKey))
 
-            txBuilder.addOutputState(outComingTransactionState)
+            txBuilder.addOutputState(outGoingTransactionState)
             txBuilder.addOutputState(inComingTransactionState)
             txBuilder.addCommand(TransactionContract.Commands.Create(), listOf(walletState.owner.owningKey))
 

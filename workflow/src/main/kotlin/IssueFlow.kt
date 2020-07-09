@@ -68,15 +68,16 @@ object IssueFlow {
         override fun call(): SignedTransaction {
 
             progressTracker.currentStep = ISSUE_TOKENS
+            val currencyUnit = money.currencyUnit
             val total = money.amount.toLong()
-            val currencyCode = FiatCurrency.getInstance(money.currencyUnit.code)
-            val issuedTokenType = currencyCode issuedBy issuer
+            val fiatCurrency = FiatCurrency.getInstance(currencyUnit.code)
+            val issuedTokenType = fiatCurrency issuedBy issuer
             val fiatToken: FungibleToken = total of issuedTokenType heldBy receiver
             IssueTokensFlow(fiatToken)
 
             progressTracker.currentStep = ASSIGNING_WALLET
             val transactionState = TransactionState(UUID.randomUUID(), total, 0, total, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(receiver, issuer))
-            val walletState = WalletState(UUID.randomUUID(), fiatToken, receiver, abs(total) ,listOf(transactionState), WalletStatus.OPEN, listOf(receiver, issuer))
+            val walletState = WalletState(UUID.randomUUID(), currencyUnit.toCurrency(), mapOf(currencyUnit.code to fiatToken), receiver, abs(total) ,listOf(transactionState), WalletStatus.OPEN, listOf(receiver, issuer))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -110,9 +111,9 @@ object IssueFlow {
             val stx = subFlow(object : SignTransactionFlow(counterPartySession) {
                 override fun checkTransaction(stx: SignedTransaction) {
                     requireThat {
-                        val issueTokens = stx.tx.outputsOfType<WalletState>()
+                        val walletState = stx.tx.outputsOfType<WalletState>().single()
                         val responderParty = serviceHub.myInfo.legalIdentities.single()
-                        "Token issuer must be the signer" using (issueTokens.all { it.fiatToken.issuer == responderParty })
+                        "Token issuer must be the signer" using (walletState.tokens.map { it.value.issuer }.contains(responderParty))
                     }
                 }
             })
