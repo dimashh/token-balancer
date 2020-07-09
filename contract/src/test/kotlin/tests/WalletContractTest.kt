@@ -12,6 +12,7 @@ import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
 import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.GBP
 import net.corda.testing.node.ledger
+import org.joda.money.CurrencyUnit
 import org.junit.jupiter.api.Test
 import states.TransactionState
 import states.TransactionStatus
@@ -23,7 +24,7 @@ class WalletContractTest : ContractTest() {
 
     private val issuedTokenType = GBP issuedBy IDENTITY_A.party
     private val fiatToken: FungibleToken = 10 of issuedTokenType heldBy IDENTITY_B.party
-    private val walletState = WalletState(UUID.randomUUID(), fiatToken, IDENTITY_B.party, 10, listOf(),
+    private val walletState = WalletState(UUID.randomUUID(), CurrencyUnit.GBP.toCurrency(), mapOf(GBP.tokenIdentifier to fiatToken), IDENTITY_B.party, 10, listOf(),
         WalletStatus.OPEN, listOf(IDENTITY_A.party, IDENTITY_B.party))
     private val transactionState = TransactionState(UUID.randomUUID(), 10, 0, 10,
         ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(IDENTITY_A.party, IDENTITY_B.party))
@@ -71,7 +72,7 @@ class WalletContractTest : ContractTest() {
                 output(WalletContract::class.java.name, withDifferentOwner)
                 command(keysOf(IDENTITY_A, IDENTITY_B), Issue())
                 failsWith("Owner of the wallet [O=PartyA, L=London, C=GB] " +
-                        "must be the owner of the tokens [O=PartyB, L=New York, C=US]")
+                        "must be the owner of the tokens")
             }
         }
     }

@@ -32,7 +32,7 @@ class ExecuteOrderFlowTest : FlowTest() {
 
     private val afterTransferFlow by lazy {
         runNetwork {
-            nodeB.startFlow(TransferFlow.Initiator(walletState.fiatToken, walletState.walletId, null, AccountAction.ISSUE))
+            nodeB.startFlow(TransferFlow.Initiator(walletState.tokens.values.last(), walletState.walletId, null, AccountAction.ISSUE))
         }
     }
 
@@ -43,8 +43,8 @@ class ExecuteOrderFlowTest : FlowTest() {
         val orderMeta = mapOf(
             "rate" to "$exchangeRate",
             "amount" to "${walletState.balance}",
-            "baseCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier,
-            "exchangeCurrency" to walletState.fiatToken.amount.token.tokenType.tokenIdentifier)
+            "baseCurrency" to walletState.baseCurrency.currencyCode,
+            "exchangeCurrency" to walletState.baseCurrency.currencyCode)
         val tradingAccount = afterTransferFlow.get().tx.outputsOfType<TradingAccountState>().single()
         val order = Order(UUID.randomUUID(), BUY, CURRENCY, null, OrderStatus.WORKING, orderMeta)
 

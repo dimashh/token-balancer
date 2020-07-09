@@ -27,7 +27,7 @@ class TransferFlowTest : FlowTest() {
     fun `flow to transfer tokens from waller to trading account`() {
         val walletState = afterIssueFlow.get().tx.outputsOfType<WalletState>().single()
         runNetwork {
-            nodeB.startFlow(TransferFlow.Initiator(walletState.fiatToken, walletState.walletId, null, AccountAction.ISSUE))
+            nodeB.startFlow(TransferFlow.Initiator(walletState.tokens.values.last(), walletState.walletId, null, AccountAction.ISSUE))
         }
     }
 

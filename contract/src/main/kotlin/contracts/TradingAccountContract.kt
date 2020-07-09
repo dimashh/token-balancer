@@ -2,7 +2,6 @@ package contracts
 
 import net.corda.core.contracts.*
 import net.corda.core.transactions.LedgerTransaction
-import states.OrderAction
 import states.OrderStatus
 import states.TradingAccountState
 
@@ -21,7 +20,9 @@ class TradingAccountContract : Contract {
     private fun verifyCreate(tx: LedgerTransaction) {
         requireThat {
             "There should be no input trading account state" using (tx.inputsOfType<TradingAccountState>().isEmpty())
-            "There is exactly one output trading account state" using (tx.outputsOfType<TradingAccountState>().size == 1)
+            val output = tx.outputsOfType<TradingAccountState>()
+            "There is exactly one output trading account state" using (output.size == 1)
+            "Trading account balance cannot be negative" using (output.single().balance > 0)
         }
     }
 

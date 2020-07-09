@@ -24,8 +24,8 @@ class WalletContract : Contract {
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
         val walletState = tx.outputsOfType<WalletState>().single()
-        "Owner of the wallet [${walletState.owner}] must be the owner of the tokens [${walletState.fiatToken.holder}]" using
-                (walletState.owner == walletState.fiatToken.holder)
+        "Owner of the wallet [${walletState.owner}] must be the owner of the tokens" using
+                (walletState.tokens.all { it.value.holder == walletState.owner })
         "Wallet balance cannot be negative" using (walletState.balance > 0)
     }
 

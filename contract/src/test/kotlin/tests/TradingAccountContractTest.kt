@@ -1,31 +1,38 @@
 package tests
 
 import ContractTest
+import com.r3.corda.lib.tokens.contracts.states.FungibleToken
+import com.r3.corda.lib.tokens.contracts.utilities.heldBy
 import com.r3.corda.lib.tokens.contracts.utilities.issuedBy
+import com.r3.corda.lib.tokens.contracts.utilities.of
 import com.r3.corda.lib.tokens.money.GBP
 import contracts.TradingAccountContract
 import net.corda.testing.node.ledger
 import contracts.TradingAccountContract.Commands.Create
 import contracts.TradingAccountContract.Commands.Update
 import contracts.WalletContract.Commands.Issue
-import net.corda.core.contracts.Amount
+import org.joda.money.CurrencyUnit
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import states.*
 import java.util.*
 
 class TradingAccountContractTest : ContractTest() {
 
     private val issuedTokenType = GBP issuedBy IDENTITY_A.party
+    private val fiatToken: FungibleToken = 10 of issuedTokenType heldBy IDENTITY_B.party
     private val tradingAccountState = TradingAccountState(
         UUID.randomUUID(),
-        Amount(10.toLong(), issuedTokenType),
+        CurrencyUnit.GBP.toCurrency(),
+        mapOf(GBP.tokenIdentifier to fiatToken),
+        10,
         IDENTITY_A.party,
         listOf(),
         listOf(),
         AccountStatus.ACTIVE,
-        listOf(IDENTITY_A.party))
-    private val order = Order(UUID.randomUUID(), OrderAction.EXCHANGE, AssetType.CURRENCY, null, OrderStatus.WORKING, mapOf())
+        listOf(IDENTITY_A.party)
+    )
+    private val order =
+        Order(UUID.randomUUID(), OrderAction.EXCHANGE, AssetType.CURRENCY, null, OrderStatus.WORKING, mapOf())
 
     @Test
     fun `Create - Requires a command`() {
@@ -62,14 +69,12 @@ class TradingAccountContractTest : ContractTest() {
 
     @Test
     fun `Create - Requires a positive balance`() {
-        assertThrows<IllegalArgumentException>("Negative amounts are not allowed: -10") {
-            services.ledger {
-                transaction {
-                    val withNegativeBalance = tradingAccountState.copy(balance = (tradingAccountState.balance * -1))
-                    output(TradingAccountContract::class.java.name, withNegativeBalance)
-                    command(IDENTITY_A.publicKey, Create())
-                    verifies()
-                }
+        services.ledger {
+            transaction {
+                val withNegativeBalance = tradingAccountState.copy(balance = -10)
+                output(TradingAccountContract::class.java.name, withNegativeBalance)
+                command(IDENTITY_A.publicKey, Create())
+                failsWith("Trading account balance cannot be negative")
             }
         }
     }
