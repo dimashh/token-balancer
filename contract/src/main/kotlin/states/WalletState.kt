@@ -16,9 +16,9 @@ enum class WalletStatus { OPEN, CLOSED }
 @BelongsToContract(WalletContract::class)
 data class WalletState(
     val walletId: UUID,
-    val baseCurrency: Currency,
+    val baseCurrency: Currency?,
     // Upon balance changes the fungible tokens must be updated
-    val tokens: Map<String, FungibleToken>,
+    val tokens: List<FungibleToken>,
     val owner: Party,
     val balance: Long,
     val transactions: List<TransactionState>,

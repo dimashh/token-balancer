@@ -2,7 +2,6 @@ package workflow
 
 import co.paralleluniverse.fibers.Suspendable
 import com.r3.corda.lib.tokens.contracts.states.FungibleToken
-import contracts.TransactionContract
 import contracts.WalletContract
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -11,11 +10,8 @@ import net.corda.core.identity.Party
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import states.TransactionState
-import states.TransactionStatus
 import states.WalletState
 import states.WalletStatus
-import java.time.ZonedDateTime
 import java.util.*
 
 // TODO move out to an interface
@@ -32,8 +28,8 @@ object CreateWalletFlow {
     @InitiatingFlow
     @StartableByRPC
     class Initiator(
-        private val baseCurrency: Currency,
-        private val token: FungibleToken,
+        private val baseCurrency: Currency?,
+        private val token: FungibleToken?,
         private val owner: Party,
         private val participants: List<AbstractParty>
     ) : FlowLogic<SignedTransaction>() {
@@ -62,18 +58,14 @@ object CreateWalletFlow {
         override fun call(): SignedTransaction {
 
             progressTracker.currentStep = CREATE_WALLET
-            val total = token.amount.quantity
+            val walletTokens = if (token != null) listOf(token) else listOf()
+            val total = token?.amount?.quantity ?: 0.toLong()
 
-
-            val transactionState = TransactionState(UUID.randomUUID(), total, 0, total, ZonedDateTime.now(), TransactionStatus.COMPLETED, participants)
-            val walletState = WalletState(UUID.randomUUID(), baseCurrency, mapOf(baseCurrency.currencyCode to token), owner, total ,listOf(transactionState), WalletStatus.OPEN, participants)
+            val walletState = WalletState(UUID.randomUUID(), baseCurrency, walletTokens, owner, total, listOf(), WalletStatus.OPEN, participants)
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             val txBuilder = TransactionBuilder(notary)
-
-            txBuilder.addOutputState(transactionState)
-            txBuilder.addCommand(TransactionContract.Commands.Create(), participants.map { it.owningKey })
 
             txBuilder.addOutputState(walletState)
             txBuilder.addCommand(WalletContract.Commands.Issue(), participants.map { it.owningKey })
