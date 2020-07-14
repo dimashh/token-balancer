@@ -13,7 +13,6 @@ enum class OrderAction { SELL, BUY, EXCHANGE }
 @CordaSerializable
 enum class AttemptStatus { SUCCEEDED, FAILED }
 
-
 // Refer here https://tradovate.zendesk.com/hc/en-us/articles/219454917-What-do-different-order-statuses-mean-
 @CordaSerializable
 enum class OrderStatus { FILLED, WORKING, CANCELLED, REJECTED, SUSPENDED, COMPLETED, EXPIRED }
