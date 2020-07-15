@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test
 import states.*
 import states.AssetType.CURRENCY
 import states.OrderAction.BUY
+import workflow.CreateWalletFlow
 import workflow.ExecuteOrderFlow
 import workflow.IssueFlow
 import workflow.TransferFlow
@@ -18,33 +19,44 @@ import java.util.*
 
 class ExecuteOrderFlowTest : FlowTest() {
 
-    private val testMoney = Money.of(CurrencyUnit.GBP, 10.toBigDecimal())
+    private val currencyUnit = CurrencyUnit.GBP
+    private val testMoney = Money.of(currencyUnit, 10.toBigDecimal())
 
-    private val afterIssueFlow by lazy {
+    private val wallet by lazy {
         runNetwork {
-            nodeB.startFlow(IssueFlow.Initiator(testMoney, receiver = partyB, issuer = partyA))
-        }
+            nodeB.startFlow(CreateWalletFlow.Initiator(currencyUnit.toCurrency(), null, partyB, listOf(partyA, partyB)))
+        }.get().tx.outputsOfType<WalletState>().single()
     }
 
-    private val walletState by lazy {
-        afterIssueFlow.get().tx.outputsOfType<WalletState>().single()
+    private val walletStateWithTokens by lazy {
+        runNetwork {
+            nodeB.startFlow(IssueFlow.Initiator(testMoney, wallet.walletId, receiver = partyB, issuer = partyA))
+        }.get().tx.outputsOfType<WalletState>().single()
     }
 
     private val afterTransferFlow by lazy {
         runNetwork {
-            nodeB.startFlow(TransferFlow.Initiator(walletState.tokens.values.last(), walletState.walletId, null, AccountAction.ISSUE))
+            nodeB.startFlow(
+                TransferFlow.Initiator(
+                    walletStateWithTokens.tokens.last(),
+                    walletStateWithTokens.walletId,
+                    null,
+                    AccountAction.ISSUE
+                )
+            )
         }
     }
 
     @Test
-    fun `flow to transfer tokens from waller to trading account`() {
+    fun `flow to transfer tokens from wallet to trading account`() {
         // TODO exchange rate should be supplied by an oracle
         val exchangeRate = 0.75.toLong()
         val orderMeta = mapOf(
             "rate" to "$exchangeRate",
-            "amount" to "${walletState.balance}",
-            "baseCurrency" to walletState.baseCurrency.currencyCode,
-            "exchangeCurrency" to walletState.baseCurrency.currencyCode)
+            "amount" to "${walletStateWithTokens.balance}",
+            "baseCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode,
+            "exchangeCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode
+        )
         val tradingAccount = afterTransferFlow.get().tx.outputsOfType<TradingAccountState>().single()
         val order = Order(UUID.randomUUID(), BUY, CURRENCY, null, OrderStatus.WORKING, orderMeta)
 

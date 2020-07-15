@@ -72,7 +72,7 @@ object TransferFlow {
             val updatedWalletState = walletStateAndRef.state.data.copy(balance = walletState.balance - outGoingTransactionState.total ,transactions = walletState.transactions + outGoingTransactionState)
 
             val inComingTransactionState = TransactionState(UUID.randomUUID(), walletState.balance, 0, walletState.balance, ZonedDateTime.now(), TransactionStatus.COMPLETED, listOf(walletState.owner))
-            val tradingAccountState = TradingAccountState(UUID.randomUUID(), walletState.baseCurrency, mapOf(tokens.tokenType.tokenIdentifier to tokens), inComingTransactionState.total, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
+            val tradingAccountState = TradingAccountState(UUID.randomUUID(), walletState.baseCurrency!!, mapOf(tokens.tokenType.tokenIdentifier to tokens), inComingTransactionState.total, walletState.owner, listOf(), listOf(inComingTransactionState), AccountStatus.ACTIVE, listOf(walletState.owner))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()

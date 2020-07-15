@@ -38,6 +38,7 @@ object IssueFlow {
     @StartableByRPC
     class Initiator(
         private val money: Money,
+        private val walletId: UUID,
         private val receiver: Party,
         private val issuer: Party
     ) : FlowLogic<SignedTransaction>() {
@@ -83,7 +84,7 @@ object IssueFlow {
 
             progressTracker.currentStep = UPDATE_WALLET
             val walletStateStateAndRef = serviceHub.vaultService.queryBy<WalletState>().states
-                .singleOrNull { it.state.data.owner == receiver } ?: throw NotFoundException("Wallet with owner $receiver not found.")
+                .singleOrNull { it.state.data.walletId == walletId } ?: throw NotFoundException("Wallet with owner $receiver not found.")
 
             val updatedWallet = walletStateStateAndRef.state.data.copy(
                 baseCurrency = currencyUnit.toCurrency(),

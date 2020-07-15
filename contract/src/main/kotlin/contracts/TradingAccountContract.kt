@@ -22,7 +22,7 @@ class TradingAccountContract : Contract {
             "There should be no input trading account state" using (tx.inputsOfType<TradingAccountState>().isEmpty())
             val output = tx.outputsOfType<TradingAccountState>()
             "There is exactly one output trading account state" using (output.size == 1)
-            "Trading account balance cannot be negative" using (output.single().balance > 0)
+            "Trading account balance cannot be negative" using (output.single().balance >= 0)
         }
     }
 

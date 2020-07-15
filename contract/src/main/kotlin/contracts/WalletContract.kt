@@ -25,8 +25,8 @@ class WalletContract : Contract {
 
         val walletState = tx.outputsOfType<WalletState>().single()
         "Owner of the wallet [${walletState.owner}] must be the owner of the tokens" using
-                (walletState.tokens.all { it.value.holder == walletState.owner })
-        "Wallet balance cannot be negative" using (walletState.balance > 0)
+                (walletState.tokens.all { it.holder == walletState.owner })
+        "Wallet balance cannot be negative" using (walletState.balance >= 0)
     }
 
     private fun verifyUpdate(tx: LedgerTransaction) = requireThat {

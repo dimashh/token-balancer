@@ -5,6 +5,8 @@ import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
+import states.WalletState
+import workflow.CreateWalletFlow
 import workflow.IssueFlow
 
 /**
@@ -13,10 +15,18 @@ import workflow.IssueFlow
 
 class IssueFlowTest : FlowTest() {
 
+    private val currencyUnit = CurrencyUnit.GBP
+
+    private val walletState by lazy {
+        runNetwork {
+            nodeB.startFlow(CreateWalletFlow.Initiator(currencyUnit.toCurrency(), null, partyB, listOf(partyA, partyB)))
+        }.get().tx.outputsOfType<WalletState>().single()
+    }
+    
     @Test
     fun `flow to issue tokens`() {
-        val money = Money.of(CurrencyUnit.GBP, 10.toBigDecimal())
-        val flow = IssueFlow.Initiator(money, receiver = partyB, issuer = partyA)
+        val money = Money.of(currencyUnit, 10.toBigDecimal())
+        val flow = IssueFlow.Initiator(money, walletState.walletId, receiver = partyB, issuer = partyA)
 
         assertDoesNotThrow {
             runNetwork { nodeB.startFlow(flow) }
