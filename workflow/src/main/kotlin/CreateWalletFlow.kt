@@ -61,7 +61,7 @@ object CreateWalletFlow {
             val walletTokens = if (token != null) listOf(token) else listOf()
             val total = token?.amount?.quantity ?: 0.toLong()
 
-            val walletState = WalletState(UUID.randomUUID(), baseCurrency, walletTokens, owner, total, listOf(), WalletStatus.OPEN, participants)
+            val walletState = WalletState(UUID.randomUUID(), baseCurrency, walletTokens, owner, total, listOf(), listOf(), WalletStatus.OPEN, participants)
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()

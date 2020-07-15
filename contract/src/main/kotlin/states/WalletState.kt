@@ -22,6 +22,9 @@ data class WalletState(
     val owner: Party,
     val balance: Long,
     val transactions: List<TransactionState>,
+    // TODO create a factory class to work out the calculations based on orders
+    // i.e. buy orders decrease available balance
+    val orders: List<Order>,
     val status: WalletStatus,
     override val participants: List<AbstractParty>,
     override val linearId: UniqueIdentifier = UniqueIdentifier()

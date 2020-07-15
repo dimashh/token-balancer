@@ -16,6 +16,7 @@ enum class AccountAction { ISSUE, WITHDRAW, TRANSFER }
 @CordaSerializable
 enum class AccountStatus { ACTIVE, INACTIVE }
 
+// TODO trading account should be deleted as it now same as the wallet
 @BelongsToContract(TradingAccountContract::class)
 data class TradingAccountState(
     val accountId: UUID,

@@ -2,6 +2,7 @@ package workflow
 
 import co.paralleluniverse.fibers.Suspendable
 import contracts.TradingAccountContract
+import contracts.WalletContract
 import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
@@ -17,7 +18,7 @@ import java.util.*
 // TODO move out to an interface
 /**
  *  Flow to execute placed orders
- *  @param tradingAccountId The ID of the account placing the order
+ *  @param walletId The ID of the wallet placing the order
  *  @param order The order details to be executed. Must contain all the metadata
  *  @param tradingParty The party making the trade
  */
@@ -27,13 +28,13 @@ object ExecuteOrderFlow {
     @InitiatingFlow
     @StartableByRPC
     class Initiator(
-        private val tradingAccountId: UUID,
+        private val walletId: UUID,
         private val order: Order,
         private val tradingParty: Party
     ) : FlowLogic<SignedTransaction>() {
 
         companion object {
-            object GET_ACCOUNT : ProgressTracker.Step("Retrieving user trading account.")
+            object GET_WALLET : ProgressTracker.Step("Retrieving user wallet.")
             object EXECUTE_ORDER : ProgressTracker.Step("Executing order at the exchange.")
             object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
@@ -43,7 +44,7 @@ object ExecuteOrderFlow {
         }
 
         fun tracker() = ProgressTracker(
-            GET_ACCOUNT,
+            GET_WALLET,
             EXECUTE_ORDER,
             INITIALISING_TX,
             VERIFYING_TRANSACTION,
@@ -57,11 +58,11 @@ object ExecuteOrderFlow {
         @Suspendable
         override fun call(): SignedTransaction {
 
-            progressTracker.currentStep = GET_ACCOUNT
-            val tradingAccountStateAndRef = serviceHub.vaultService.queryBy<TradingAccountState>()
-                .states.singleOrNull { it.state.data.accountId == tradingAccountId } ?: throw NotFoundException("Trading account with $tradingAccountId not found.")
+            progressTracker.currentStep = GET_WALLET
+            val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>()
+                .states.singleOrNull { it.state.data.walletId == walletId } ?: throw NotFoundException("Wallet with $walletId not found.")
 
-            val tradingAccountState = tradingAccountStateAndRef.state.data
+            val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = EXECUTE_ORDER
 
@@ -69,15 +70,16 @@ object ExecuteOrderFlow {
             val attempt = OrderAttempt(AttemptStatus.SUCCEEDED, "Order successfully verified.", ZonedDateTime.now())
             val completedOrder = order.copy(attempt = attempt, status = OrderStatus.COMPLETED)
             // TODO calculations must be done and checked before contract verification
-            val updatedTradingAccountState = tradingAccountState.copy(orders = tradingAccountState.orders + completedOrder)
+            val updatedWalletState = walletState.copy(orders = walletState.orders + completedOrder)
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
             val txBuilder = TransactionBuilder(notary)
 
-            txBuilder.addInputState(tradingAccountStateAndRef)
-            txBuilder.addOutputState(updatedTradingAccountState)
-            txBuilder.addCommand(TradingAccountContract.Commands.Update(), tradingAccountState.participants.map { it.owningKey })
+            txBuilder.addInputState(walletStateAndRef)
+            txBuilder.addOutputState(updatedWalletState)
+            // TODO check who actually needs to sign
+            txBuilder.addCommand(WalletContract.Commands.Update(), walletState.participants.map { it.owningKey })
 
             progressTracker.currentStep = VERIFYING_TRANSACTION
             txBuilder.verify(serviceHub)
