@@ -1,4 +1,3 @@
-import contracts.TradingAccountContract
 import contracts.TransactionContract
 import contracts.WalletContract
 import net.corda.core.contracts.ContractClassName
@@ -18,8 +17,7 @@ abstract class ContractTest : AutoCloseable {
 
         val contracts = listOf<ContractClassName>(
             WalletContract::class.java.name,
-            TransactionContract::class.java.name,
-            TradingAccountContract::class.java.name
+            TransactionContract::class.java.name
         )
 
         val IDENTITY_A = TestIdentity(CordaX500Name("PartyA", "London", "GB"))

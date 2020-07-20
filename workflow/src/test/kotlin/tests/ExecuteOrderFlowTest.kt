@@ -10,7 +10,6 @@ import states.OrderAction.BUY
 import workflow.CreateWalletFlow
 import workflow.ExecuteOrderFlow
 import workflow.IssueFlow
-import workflow.TransferFlow
 import java.util.*
 
 /**
@@ -34,19 +33,6 @@ class ExecuteOrderFlowTest : FlowTest() {
         }.get().tx.outputsOfType<WalletState>().single()
     }
 
-    private val afterTransferFlow by lazy {
-        runNetwork {
-            nodeB.startFlow(
-                TransferFlow.Initiator(
-                    walletStateWithTokens.tokens.last(),
-                    walletStateWithTokens.walletId,
-                    null,
-                    AccountAction.ISSUE
-                )
-            )
-        }
-    }
-
     @Test
     fun `flow to transfer tokens from wallet to trading account`() {
         // TODO exchange rate should be supplied by an oracle
@@ -57,11 +43,10 @@ class ExecuteOrderFlowTest : FlowTest() {
             "baseCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode,
             "exchangeCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode
         )
-        val tradingAccount = afterTransferFlow.get().tx.outputsOfType<TradingAccountState>().single()
         val order = Order(UUID.randomUUID(), BUY, CURRENCY, null, OrderStatus.WORKING, orderMeta)
 
         runNetwork {
-            nodeB.startFlow(ExecuteOrderFlow.Initiator(tradingAccount.accountId, order, partyB))
+            nodeB.startFlow(ExecuteOrderFlow.Initiator(walletStateWithTokens.walletId, order, partyB))
         }
     }
 

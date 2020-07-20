@@ -1,7 +1,6 @@
 package workflow
 
 import co.paralleluniverse.fibers.Suspendable
-import contracts.TradingAccountContract
 import contracts.WalletContract
 import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
@@ -61,7 +60,6 @@ object ExecuteOrderFlow {
             progressTracker.currentStep = GET_WALLET
             val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>()
                 .states.singleOrNull { it.state.data.walletId == walletId } ?: throw NotFoundException("Wallet with $walletId not found.")
-
             val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = EXECUTE_ORDER
