@@ -8,13 +8,24 @@ import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.transactions.FilteredTransaction
 
 @CordaService
-class ExchangeRateOracle(val services: ServiceHub): SingletonSerializeAsToken() {
-    private val myKey = services.myInfo.legalIdentities.first().owningKey
+class ExchangeRateOracle(val service: ServiceHub): SingletonSerializeAsToken() {
+    private val myKey = service.myInfo.legalIdentities.first().owningKey
+
+    open fun exchangeRateService() = service.cordaService(ExchangeRateService::class.java)
+
+    fun query(fromCurrencyCode: String, toCurrencyCode: String): Double {
+        return exchangeRateService().getExchangeRate(fromCurrencyCode, toCurrencyCode)
+    }
+
+    fun rateIsMatching(command: ExchangeRateCommand) : Boolean {
+        return (command.rate == query(command.fromCurrency, command.toCurrency))
+    }
 
     private fun FilteredTransaction.agreesWithExchangeRateOracle(): Boolean = this.checkWithFun {
         it is Command<*>
                 && myKey in it.signers
                 && it.value is ExchangeRateCommand
+                && rateIsMatching(it.value as ExchangeRateCommand)
     }
 
     fun sign(ftx: FilteredTransaction): TransactionSignature {
@@ -22,7 +33,7 @@ class ExchangeRateOracle(val services: ServiceHub): SingletonSerializeAsToken() 
         ftx.verify()
 
         if (ftx.agreesWithExchangeRateOracle()) {
-            return services.createSignature(ftx, myKey)
+            return service.createSignature(ftx, myKey)
         } else {
             throw IllegalArgumentException("Oracle signature requested over invalid transaction.")
         }
