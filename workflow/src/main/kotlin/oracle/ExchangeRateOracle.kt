@@ -17,7 +17,7 @@ class ExchangeRateOracle(val service: ServiceHub): SingletonSerializeAsToken() {
         return exchangeRateService().getExchangeRate(fromCurrencyCode, toCurrencyCode)
     }
 
-    fun rateIsMatching(command: ExchangeRateCommand) : Boolean {
+    private fun rateIsMatching(command: ExchangeRateCommand) : Boolean {
         return (command.rate == query(command.fromCurrency, command.toCurrency))
     }
 
