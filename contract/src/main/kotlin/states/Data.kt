@@ -28,8 +28,8 @@ data class OrderAttempt (
 data class Order (
     val id: UUID,
     val action: OrderAction,
-    val assetType: AssetType,
     val attempt: OrderAttempt? = null,
     val status: OrderStatus,
-    val meta: Map<String, String>
+    val fromCurrency: Currency,
+    val toCurrency: Currency
 )

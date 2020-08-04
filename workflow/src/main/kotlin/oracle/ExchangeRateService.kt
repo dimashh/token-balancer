@@ -6,7 +6,10 @@ import net.corda.core.serialization.SingletonSerializeAsToken
 
 @CordaService
 open class ExchangeRateService(val service: ServiceHub): SingletonSerializeAsToken() {
-    private val API_URL = "https://api.exchangeratesapi.io/latest"
+
+    companion object {
+        private const val API_URL = "https://api.exchangeratesapi.io/latest"
+    }
 
     open fun getExchangeRate(fromCurrency: String, toCurrency: String): Double {
         val url = "$API_URL?symbols=$fromCurrency,$toCurrency"
