@@ -6,12 +6,28 @@ import net.corda.core.node.ServiceHub
 import net.corda.core.node.services.CordaService
 import net.corda.core.serialization.SingletonSerializeAsToken
 import net.corda.core.transactions.FilteredTransaction
+import net.corda.core.transactions.SignedTransaction
+import states.ExchangeRateCommand
+import java.security.PublicKey
+import java.util.function.Predicate
 
 @CordaService
-class ExchangeRateOracle(val service: ServiceHub): SingletonSerializeAsToken() {
+class ExchangeRateOracle(private val service: ServiceHub): SingletonSerializeAsToken() {
     private val myKey = service.myInfo.legalIdentities.first().owningKey
 
-    open fun exchangeRateService() = service.cordaService(ExchangeRateService::class.java)
+    companion object {
+        private fun filterPredicate(oracle: PublicKey): Predicate<Any> = Predicate {
+            it is Command<*> && it.value is ExchangeRateCommand && oracle in it.signers
+        }
+
+        // Asking the oracle to sign the transaction
+        // For privacy reasons, we only want to expose to the oracle any commands of type `ExchangeRateCommand`
+        // that require its signature.
+        fun SignedTransaction.filterForOracle(oracle: PublicKey): FilteredTransaction =
+            this.buildFilteredTransaction(filterPredicate(oracle))
+    }
+
+    private fun exchangeRateService() = service.cordaService(ExchangeRateService::class.java)
 
     fun query(fromCurrencyCode: String, toCurrencyCode: String): Double {
         return exchangeRateService().getExchangeRate(fromCurrencyCode, toCurrencyCode)

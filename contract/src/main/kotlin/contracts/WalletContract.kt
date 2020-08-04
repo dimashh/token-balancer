@@ -5,6 +5,7 @@ import net.corda.core.contracts.Contract
 import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
+import states.ExchangeRateCommand
 import states.WalletState
 
 class WalletContract : Contract {
@@ -49,6 +50,7 @@ class WalletContract : Contract {
     interface Commands : CommandData {
         class Issue : Commands
         class Update : Commands
+        class Exchange(fromCurrency: String, toCurrency: String, rate: Double) : ExchangeRateCommand(fromCurrency, toCurrency, rate), Commands
         class Withdraw : Commands
     }
 }

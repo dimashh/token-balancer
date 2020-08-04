@@ -1,6 +1,7 @@
 package flows
 
 import co.paralleluniverse.fibers.Suspendable
+import com.r3.corda.lib.tokens.workflows.utilities.toParty
 import contracts.WalletContract
 import javassist.NotFoundException
 import net.corda.core.contracts.requireThat
@@ -10,10 +11,11 @@ import net.corda.core.node.services.queryBy
 import net.corda.core.transactions.SignedTransaction
 import net.corda.core.transactions.TransactionBuilder
 import net.corda.core.utilities.ProgressTracker
-import oracle.ExchangeRateCommand
 import states.*
 import java.time.ZonedDateTime
 import java.util.*
+import oracle.ExchangeRateOracle.Companion.filterForOracle
+import workflow.CreateWalletFlow
 
 // TODO move out to an interface
 /**
@@ -43,8 +45,10 @@ object ExecuteOrderFlow {
             object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
+            object ORACLE_SIGNING : ProgressTracker.Step("Signing transaction with oracle's key.")
             object GATHERING_SIGS : ProgressTracker.Step("Gathering participant signatures.")
-            object FINALISING_TRANSACTION : ProgressTracker.Step("Obtaining notary signature and recording transaction.")
+            object FINALISING_TRANSACTION :
+                ProgressTracker.Step("Obtaining notary signature and recording transaction.")
         }
 
         private fun tracker() = ProgressTracker(
@@ -55,6 +59,7 @@ object ExecuteOrderFlow {
             INITIALISING_TX,
             VERIFYING_TRANSACTION,
             SIGNING_TRANSACTION,
+            ORACLE_SIGNING,
             GATHERING_SIGS,
             FINALISING_TRANSACTION
         )
@@ -66,7 +71,8 @@ object ExecuteOrderFlow {
 
             progressTracker.currentStep = GETTING_WALLET
             val walletStateAndRef = serviceHub.vaultService.queryBy<WalletState>()
-                .states.singleOrNull { it.state.data.walletId == walletId } ?: throw NotFoundException("Wallet with $walletId not found.")
+                .states.singleOrNull { it.state.data.walletId == walletId }
+                ?: throw NotFoundException("Wallet with $walletId not found.")
             val walletState = walletStateAndRef.state.data
 
             progressTracker.currentStep = QUERYING_THE_ORACLE
@@ -83,30 +89,33 @@ object ExecuteOrderFlow {
             val updatedWalletState = walletState.copy(orders = walletState.orders + completedOrder)
 
             progressTracker.currentStep = INITIALISING_TX
-            val exchangeRateCommand = ExchangeRateCommand(walletId, fromCurrency, toCurrency, exchangeRateFromOracle)
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
+            val exchangeCommand = WalletContract.Commands.Exchange(fromCurrency, toCurrency, exchangeRateFromOracle)
             val txBuilder = TransactionBuilder(notary)
-
-            txBuilder.addCommand(exchangeRateCommand, listOf(oracle.owningKey, ourIdentity.owningKey))
 
             txBuilder.addInputState(walletStateAndRef)
             txBuilder.addOutputState(updatedWalletState)
-            // TODO check who actually needs to sign
-            txBuilder.addCommand(WalletContract.Commands.Update(), walletState.participants.map { it.owningKey })
+            txBuilder.addCommand(exchangeCommand, walletState.participants.map { it.owningKey } + oracle.owningKey)
 
             progressTracker.currentStep = VERIFYING_TRANSACTION
             txBuilder.verify(serviceHub)
 
             progressTracker.currentStep = SIGNING_TRANSACTION
-            val signedTx = serviceHub.signInitialTransaction(txBuilder)
+            val signedTx1 = serviceHub.signInitialTransaction(txBuilder)
 
-            // TODO the transaction must be signed by the party that executes the subflow and an oracle
-//            progressTracker.currentStep = GATHERING_SIGS
-//            val otherPartySession = initiateFlow()
+            progressTracker.currentStep = ORACLE_SIGNING
+            val oracleSignature = subFlow(ExchangeRateFlow.SignFlow(
+                oracle,
+                signedTx1.filterForOracle(oracle.owningKey)))
+            val signedTx = signedTx1.withAdditionalSignature(oracleSignature)
+
+            progressTracker.currentStep = GATHERING_SIGS
+            val otherParty = (walletState.participants.map { it } - oracle - ourIdentity).single().toParty(serviceHub)
+            val otherPartySessions = listOf(otherParty).map { initiateFlow(Party(it.nameOrNull(), it.owningKey)) }
 
             progressTracker.currentStep = FINALISING_TRANSACTION
-            return signedTx
-
+            val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx,otherPartySessions))
+            return subFlow(FinalityFlow(fullySignedTransaction, otherPartySessions))
         }
     }
 

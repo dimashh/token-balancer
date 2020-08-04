@@ -78,7 +78,7 @@ object CreateWalletFlow {
 
             progressTracker.currentStep = GATHERING_SIGS
             val otherPartySessions = (participants - owner).map { initiateFlow(Party(it.nameOrNull()!!, it.owningKey)) }
-            val fullySignedTransaction =subFlow(CollectSignaturesFlow(signedTx, otherPartySessions))
+            val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx, otherPartySessions))
 
             progressTracker.currentStep = FINALISING_TRANSACTION
 

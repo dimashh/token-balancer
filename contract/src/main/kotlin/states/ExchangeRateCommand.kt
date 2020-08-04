@@ -1,9 +1,6 @@
-package oracle
-
-import java.util.*
+package states
 
 open class ExchangeRateCommand(
-    val walletId: UUID,
     val fromCurrency: String,
     val toCurrency: String,
     val rate: Double
