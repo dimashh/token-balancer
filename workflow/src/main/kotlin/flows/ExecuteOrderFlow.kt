@@ -15,7 +15,12 @@ import states.*
 import java.time.ZonedDateTime
 import java.util.*
 import oracle.ExchangeRateOracle.Companion.filterForOracle
-import workflow.CreateWalletFlow
+import states.OrderAction.EXCHANGE
+import states.OrderAction.BUY
+import states.OrderAction.SELL
+import util.buyTokens
+import util.exchangeTokens
+import util.sellTokens
 
 // TODO move out to an interface
 /**
@@ -42,6 +47,7 @@ object ExecuteOrderFlow {
             object QUERYING_THE_ORACLE : ProgressTracker.Step("Requesting an exhange rate from an oracle.")
             object UPDATING_ORDER : ProgressTracker.Step("Updating the order details.")
             object UPDATING_WALLET : ProgressTracker.Step("Updating the wallet details.")
+            object UPDATING_TOKENS : ProgressTracker.Step("Updating the wallet's token balance.")
             object INITIALISING_TX : ProgressTracker.Step("Initialising transaction.")
             object VERIFYING_TRANSACTION : ProgressTracker.Step("Verifying transaction.")
             object SIGNING_TRANSACTION : ProgressTracker.Step("Signing transaction with own key.")
@@ -55,6 +61,7 @@ object ExecuteOrderFlow {
             GETTING_WALLET,
             QUERYING_THE_ORACLE,
             UPDATING_ORDER,
+            UPDATING_TOKENS,
             UPDATING_WALLET,
             INITIALISING_TX,
             VERIFYING_TRANSACTION,
@@ -84,9 +91,18 @@ object ExecuteOrderFlow {
             val attempt = OrderAttempt(AttemptStatus.SUCCEEDED, "Order successfully verified.", ZonedDateTime.now())
             val completedOrder = order.copy(attempt = attempt, status = OrderStatus.COMPLETED)
 
-            // TODO need to update the token number and total balance too
+            progressTracker.currentStep = UPDATING_TOKENS
+            val walletTokens = walletState.tokens
+            val updatedTokens = when (order.action) {
+                EXCHANGE -> exchangeTokens(walletTokens, order)
+                BUY -> buyTokens(walletTokens, order)
+                SELL -> sellTokens(walletTokens, order)
+                else -> walletTokens
+            }
+
             progressTracker.currentStep = UPDATING_WALLET
-            val updatedWalletState = walletState.copy(orders = walletState.orders + completedOrder)
+            val updatedWalletState =
+                walletState.copy(orders = walletState.orders + completedOrder, tokens = updatedTokens)
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
@@ -104,9 +120,12 @@ object ExecuteOrderFlow {
             val signedTx1 = serviceHub.signInitialTransaction(txBuilder)
 
             progressTracker.currentStep = ORACLE_SIGNING
-            val oracleSignature = subFlow(ExchangeRateFlow.SignFlow(
-                oracle,
-                signedTx1.filterForOracle(oracle.owningKey)))
+            val oracleSignature = subFlow(
+                ExchangeRateFlow.SignFlow(
+                    oracle,
+                    signedTx1.filterForOracle(oracle.owningKey)
+                )
+            )
             val signedTx = signedTx1.withAdditionalSignature(oracleSignature)
 
             progressTracker.currentStep = GATHERING_SIGS
@@ -114,7 +133,7 @@ object ExecuteOrderFlow {
             val otherPartySessions = listOf(otherParty).map { initiateFlow(Party(it.nameOrNull(), it.owningKey)) }
 
             progressTracker.currentStep = FINALISING_TRANSACTION
-            val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx,otherPartySessions))
+            val fullySignedTransaction = subFlow(CollectSignaturesFlow(signedTx, otherPartySessions))
             return subFlow(FinalityFlow(fullySignedTransaction, otherPartySessions))
         }
     }
