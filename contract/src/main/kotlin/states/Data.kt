@@ -30,6 +30,7 @@ data class Order (
     val action: OrderAction,
     val attempt: OrderAttempt? = null,
     val status: OrderStatus,
+    val total: Long,
     val fromCurrency: Currency,
     val toCurrency: Currency
 )

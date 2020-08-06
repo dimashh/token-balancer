@@ -93,10 +93,10 @@ object ExecuteOrderFlow {
 
             progressTracker.currentStep = UPDATING_TOKENS
             val walletTokens = walletState.tokens
+
+            // BUY/SELL involves bank transfers so we will just stick with exchanging tokens
             val updatedTokens = when (order.action) {
-                EXCHANGE -> exchangeTokens(walletTokens, order)
-                BUY -> buyTokens(walletTokens, order)
-                SELL -> sellTokens(walletTokens, order)
+                EXCHANGE -> exchangeTokens(walletTokens, order, walletState)
                 else -> walletTokens
             }
 
