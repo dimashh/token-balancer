@@ -1,9 +1,12 @@
 package flows
 
 import co.paralleluniverse.fibers.Suspendable
+import com.r3.corda.lib.tokens.workflows.flows.issue.IssueTokensFlow
+import com.r3.corda.lib.tokens.workflows.flows.redeem.RedeemFungibleTokensFlow
 import com.r3.corda.lib.tokens.workflows.utilities.toParty
 import contracts.WalletContract
 import javassist.NotFoundException
+import net.corda.core.contracts.Amount
 import net.corda.core.contracts.requireThat
 import net.corda.core.flows.*
 import net.corda.core.identity.Party
@@ -16,11 +19,7 @@ import java.time.ZonedDateTime
 import java.util.*
 import oracle.ExchangeRateOracle.Companion.filterForOracle
 import states.OrderAction.EXCHANGE
-import states.OrderAction.BUY
-import states.OrderAction.SELL
-import util.buyTokens
 import util.exchangeTokens
-import util.sellTokens
 
 // TODO move out to an interface
 /**
@@ -95,14 +94,21 @@ object ExecuteOrderFlow {
             val walletTokens = walletState.tokens
 
             // BUY/SELL involves bank transfers so we will just stick with exchanging tokens
-            val updatedTokens = when (order.action) {
+            val (fromToken, toToken) = when (order.action) {
                 EXCHANGE -> exchangeTokens(walletTokens, order, walletState)
                 else -> walletTokens
             }
 
+            RedeemFungibleTokensFlow(
+                amount = Amount(order.total, fromToken.issuedTokenType),
+                issuerSession = initiateFlow(fromToken.issuer))
+
+            IssueTokensFlow(token = toToken)
+
             progressTracker.currentStep = UPDATING_WALLET
-            val updatedWalletState =
-                walletState.copy(orders = walletState.orders + completedOrder, tokens = updatedTokens)
+            val updatedWalletState = walletState.copy(
+                orders = walletState.orders + completedOrder,
+                tokens = walletTokens + listOf(fromToken, toToken))
 
             progressTracker.currentStep = INITIALISING_TX
             val notary = serviceHub.networkMapCache.notaryIdentities.first()
