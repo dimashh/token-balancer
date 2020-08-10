@@ -1,14 +1,13 @@
 package tests
 
 import FlowTest
+import flows.ExecuteOrderFlow
 import org.joda.money.CurrencyUnit
 import org.joda.money.Money
 import org.junit.jupiter.api.Test
 import states.*
-import states.AssetType.CURRENCY
-import states.OrderAction.BUY
+import states.OrderAction.EXCHANGE
 import workflow.CreateWalletFlow
-import workflow.ExecuteOrderFlow
 import workflow.IssueFlow
 import java.util.*
 
@@ -35,18 +34,10 @@ class ExecuteOrderFlowTest : FlowTest() {
 
     @Test
     fun `flow to transfer tokens from wallet to trading account`() {
-        // TODO exchange rate should be supplied by an oracle
-        val exchangeRate = 0.75.toLong()
-        val orderMeta = mapOf(
-            "rate" to "$exchangeRate",
-            "amount" to "${walletStateWithTokens.balance}",
-            "baseCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode,
-            "exchangeCurrency" to walletStateWithTokens.baseCurrency!!.currencyCode
-        )
-        val order = Order(UUID.randomUUID(), BUY, CURRENCY, null, OrderStatus.WORKING, orderMeta)
+        val order = Order(UUID.randomUUID(), EXCHANGE, null, OrderStatus.WORKING, 5.toLong(), currencyUnit.toCurrency(), CurrencyUnit.USD.toCurrency())
 
         runNetwork {
-            nodeB.startFlow(ExecuteOrderFlow.Initiator(walletStateWithTokens.walletId, order, partyB))
+            nodeB.startFlow(ExecuteOrderFlow.Initiator(walletStateWithTokens.walletId, order, partyC))
         }
     }
 

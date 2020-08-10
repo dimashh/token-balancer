@@ -16,6 +16,7 @@ class WalletContract : Contract {
             is Commands.Issue -> verifyIssue(tx)
             is Commands.Update -> verifyUpdate(tx)
             is Commands.Withdraw -> verifyWithdraw(tx)
+            is Commands.Exchange -> verifyExchange(tx)
             else -> throw IllegalArgumentException("Command not found.")
         }
     }
@@ -45,6 +46,13 @@ class WalletContract : Contract {
     private fun verifyWithdraw(tx: LedgerTransaction) = requireThat {
         val inputs = tx.inputsOfType<WalletState>()
         val outputs = tx.outputsOfType<WalletState>()
+    }
+
+    private fun verifyExchange(tx: LedgerTransaction) = requireThat {
+        val inputs = tx.inputsOfType<WalletState>()
+        val outputs = tx.outputsOfType<WalletState>()
+
+        //TODO
     }
 
     interface Commands : CommandData {

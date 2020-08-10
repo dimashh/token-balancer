@@ -37,7 +37,6 @@ object ExecuteOrderFlow {
     class Initiator(
         private val walletId: UUID,
         private val order: Order,
-        private val tradingParty: Party,
         private val oracle: Party
     ) : FlowLogic<SignedTransaction>() {
 
