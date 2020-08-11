@@ -6,6 +6,7 @@ import net.corda.core.contracts.requireSingleCommand
 import net.corda.core.contracts.requireThat
 import net.corda.core.transactions.LedgerTransaction
 import states.ExchangeRateCommand
+import states.OrderStatus
 import states.WalletState
 
 class WalletContract : Contract {
@@ -49,10 +50,18 @@ class WalletContract : Contract {
     }
 
     private fun verifyExchange(tx: LedgerTransaction) = requireThat {
-        val inputs = tx.inputsOfType<WalletState>()
-        val outputs = tx.outputsOfType<WalletState>()
+        "There is exactly one input wallet state" using (tx.inputsOfType<WalletState>().size == 1)
+        "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
-        //TODO
+        val inputWalletState = tx.inputsOfType<WalletState>().single()
+        val outputWalletState = tx.outputsOfType<WalletState>().single()
+
+        inputWalletState.tokens.map { inputToken ->
+            "Output wallet state must contain the same token" using (inputToken in outputWalletState.tokens)
+        }
+
+        val latestOrder = outputWalletState.orders.last()
+        "Output wallet state must have it's latest order completed" using (latestOrder.status == OrderStatus.COMPLETED)
     }
 
     interface Commands : CommandData {
