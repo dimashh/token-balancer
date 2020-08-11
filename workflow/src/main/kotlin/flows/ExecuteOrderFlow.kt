@@ -26,7 +26,6 @@ import util.exchangeTokens
  *  Flow to execute placed orders
  *  @param walletId The ID of the wallet placing the order
  *  @param order The order details to be executed. Must contain all the metadata
- *  @param tradingParty The party making the trade
  *  @param oracle The oracle party that will verify the order
  */
 

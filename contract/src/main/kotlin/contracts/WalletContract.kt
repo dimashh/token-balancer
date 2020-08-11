@@ -36,12 +36,11 @@ class WalletContract : Contract {
         "There is exactly one input wallet state" using (tx.inputsOfType<WalletState>().size == 1)
         "There is exactly one output wallet state" using (tx.outputsOfType<WalletState>().size == 1)
 
-//        val input = tx.inputsOfType<WalletState>().single()
-//        val output = tx.outputsOfType<WalletState>().single()
-//        val latestTransaction = output.transactions - input.transactions
-//
-//        "Updated wallet state must include new transaction(s)" using (output.transactions.isNotEmpty())
-//        "Wallet update can only add one transaction at a time" using (latestTransaction.size == 1)
+        val input = tx.inputsOfType<WalletState>().single()
+        val output = tx.outputsOfType<WalletState>().single()
+        val latestTransaction = output.transactions - input.transactions
+
+        "Updated wallet state must include new transaction(s)" using latestTransaction.isNotEmpty()
     }
 
     private fun verifyWithdraw(tx: LedgerTransaction) = requireThat {
@@ -61,7 +60,7 @@ class WalletContract : Contract {
         }
 
         val latestOrder = outputWalletState.orders.last()
-        "Output wallet state must have it's latest order completed" using (latestOrder.status == OrderStatus.COMPLETED)
+        "Output wallet state must have its latest order completed" using (latestOrder.status == OrderStatus.COMPLETED)
     }
 
     interface Commands : CommandData {
